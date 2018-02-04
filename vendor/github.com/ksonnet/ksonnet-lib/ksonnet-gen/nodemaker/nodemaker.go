@@ -2,6 +2,7 @@ package nodemaker
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
@@ -138,22 +139,33 @@ func (t *StringDouble) Node() ast.Node {
 
 // Number is an a number.
 type Number struct {
-	number float64
+	f64 float64
+	num string
 }
 
 var _ Noder = (*Number)(nil)
 
-// NewNumber creates an instance of Number.
-func NewNumber(number float64) *Number {
+// NewInt creates an integer instance of number.
+func NewInt(i int) *Number {
 	return &Number{
-		number: number,
+		f64: float64(i),
+		num: strconv.Itoa(i),
+	}
+}
+
+// NewFloat creates a float instance of a number.
+func NewFloat(f float64) *Number {
+	return &Number{
+		f64: f,
+		num: strconv.FormatFloat(f, 'f', -1, 64),
 	}
 }
 
 // Node converts the Number to a jsonnet node.
 func (t *Number) Node() ast.Node {
 	return &ast.LiteralNumber{
-		Value: t.number,
+		Value:          t.f64,
+		OriginalString: t.num,
 	}
 }
 

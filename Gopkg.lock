@@ -61,7 +61,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "b527eaa95de26a276f69c056fe7b90cab0bf1885"
+  revision = "9bd20a9de0f66dc9bb6be44f037a34ecac43132f"
   source = "https://github.com/bryanl/ksonnet-lib"
 
 [[projects]]

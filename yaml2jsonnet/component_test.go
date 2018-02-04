@@ -11,11 +11,16 @@ import (
 func TestComponent_Generate(t *testing.T) {
 	c := NewComponent()
 
-	ds := NewDeclarationString("a")
-	c.AddDeclaration(Declaration{Name: "a", Value: ds})
+	err := c.AddParam("option", "value")
+	require.NoError(t, err)
+	err = c.AddParam("int", 9)
+	require.NoError(t, err)
+
+	c.AddDeclaration(Declaration{Name: "a", Value: NewDeclarationString("a")})
+	c.AddDeclaration(Declaration{Name: "b", Value: NewDeclarationString("b")})
 
 	n := &ast.Object{}
-	got, err := c.Declarations(n)
+	got, err := c.Generate(n)
 	require.NoError(t, err)
 
 	b, err := ioutil.ReadFile("testdata/declarations.libsonnet")

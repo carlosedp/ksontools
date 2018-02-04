@@ -99,13 +99,15 @@ func (d *Document) Generate() (string, error) {
 				return "", errors.Wrapf(err, "inspect property %s", name)
 			}
 
-			for k := range t {
+			for k, v := range t {
 				k1 := k.(string)
 				setter, err := node.FindFunction(name, k1)
 				if err != nil {
 					logger.Warnf("%s is a mixin", k1)
 					continue
 				}
+
+				comp.AddParam(k1, v)
 
 				logger.Infof("setter for %s is %s", k1, setter)
 
