@@ -30,7 +30,9 @@ spec:
 
 ```json
 local k = import "k.libsonnet";
-local deployment = "k.apps.v1beta2.deployment";
+local deployment = k.apps.v1beta2.deployment;
+
+local specSelectorTemplateMatchLabels
 
 local deploymentInstance = deployment.new()
 ```

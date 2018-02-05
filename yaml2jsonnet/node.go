@@ -82,7 +82,6 @@ func (n *Node) Property(name string) (*Node, error) {
 
 	for _, mixin := range mixins {
 		if name == mixin.name {
-			fmt.Println(name, "is a mixin")
 
 			_, err := mixin.Properties()
 			if err != nil {
@@ -124,6 +123,124 @@ func (n *Node) Mixins() ([]Node, error) {
 	}
 
 	return mixins, nil
+}
+
+type SearchResult struct {
+	Fields    []string
+	Functions []string
+	Types     []string
+
+	Setter string
+}
+
+func (n *Node) Search(path ...string) (SearchResult, []string, error) {
+	return searchObj(n.obj, path...)
+}
+
+func searchObj(obj *ast.Object, path ...string) (SearchResult, []string, error) {
+	om, err := objMembers(obj)
+	if err != nil {
+		return SearchResult{}, nil, err
+	}
+
+	if len(path) == 0 {
+		return SearchResult{
+			Fields:    om.fields,
+			Functions: om.functions,
+			Types:     om.types,
+		}, nil, nil
+	}
+
+	cur, err := FindNode(obj, path[0])
+	if err != nil {
+		path = append([]string{"mixin"}, path...)
+		cur, err = FindNode(obj, path[0])
+		if err != nil {
+			// is there a function which matches this?
+			fn, err := om.findFunction(path[1])
+			if err != nil {
+				return SearchResult{}, nil, errors.New("node not found")
+			}
+
+			return SearchResult{Setter: fn}, []string{path[1]}, nil
+		}
+	}
+
+	sr, mp, err := searchObj(cur, path[1:]...)
+	if err != nil {
+		return SearchResult{}, nil, err
+	}
+
+	return sr, append([]string{path[0]}, mp...), nil
+}
+
+type objMember struct {
+	fields    []string
+	functions []string
+	types     []string
+}
+
+func (om *objMember) findFunction(name string) (string, error) {
+	var hasSetter, hasSetterMixin, hasType bool
+
+	name2 := strings.Title(name)
+
+	for _, id := range om.functions {
+		if fn := fmt.Sprintf("with%s", name2); fn == id && stringInSlice(fn, om.functions) {
+			hasSetter = true
+		}
+		if fn := fmt.Sprintf("with%sMixin", name2); fn == id && stringInSlice(fn, om.functions) {
+			hasSetterMixin = true
+		}
+		if t := fmt.Sprintf("%sType", name); t == id && stringInSlice(t, om.types) {
+			hasType = true
+		}
+	}
+
+	if hasSetter && hasSetterMixin && hasType {
+		return fmt.Sprintf("with%s", name2), nil
+	} else if hasSetter && hasSetterMixin {
+		return fmt.Sprintf("with%s", name2), nil
+	} else if hasType {
+		return "", errors.New("what to do with mixins")
+	} else if hasSetter {
+		return fmt.Sprintf("with%s", name2), nil
+	}
+
+	return "", errors.Errorf("could not find function %s", name)
+}
+
+func objMembers(obj *ast.Object) (objMember, error) {
+	if obj == nil {
+		return objMember{}, errors.New("object is nil")
+	}
+
+	var om objMember
+
+	for _, of := range obj.Fields {
+		if of.Id == nil {
+			continue
+		}
+
+		id := string(*of.Id)
+
+		if of.Method != nil && !strings.HasPrefix(id, "__") && !strings.HasPrefix(id, "mixin") {
+			om.functions = append(om.functions, id)
+			continue
+		}
+
+		if _, ok := of.Expr2.(*ast.Object); ok && !strings.HasPrefix(id, "__") {
+			om.fields = append(om.fields, id)
+			continue
+		}
+
+		if strings.HasSuffix(id, "Type") {
+			om.types = append(om.types, id)
+			continue
+		}
+	}
+
+	return om, nil
 }
 
 var (
@@ -185,11 +302,9 @@ func (n *Node) FindFunction(p, name string) (string, error) {
 		return fmt.Sprintf("with%s", name2), nil
 	} else if hasType {
 		return "", errors.New("what to do with mixins")
-	} else {
-		return fmt.Sprintf("with%s", name2), nil
 	}
 
-	return "", nil
+	return fmt.Sprintf("with%s", name2), nil
 }
 
 func stringInSlice(s string, sl []string) bool {

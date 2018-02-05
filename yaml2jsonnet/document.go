@@ -15,14 +15,14 @@ import (
 )
 
 type Document struct {
-	Properties map[string]interface{}
+	Properties Properties
 	GVK        GVK
 	root       ast.Node
 }
 
 func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 	doc := &Document{
-		Properties: make(map[string]interface{}),
+		Properties: Properties{},
 		root:       root,
 	}
 
@@ -99,6 +99,11 @@ func (d *Document) Generate() (string, error) {
 				return "", errors.Wrapf(err, "inspect property %s", name)
 			}
 
+			if node.IsMixin {
+				logrus.WithField("mixinName", node.name).Info("found mixin")
+
+			}
+
 			for k, v := range t {
 				k1 := k.(string)
 				setter, err := node.FindFunction(name, k1)
@@ -107,9 +112,9 @@ func (d *Document) Generate() (string, error) {
 					continue
 				}
 
-				comp.AddParam(k1, v)
-
-				logger.Infof("setter for %s is %s", k1, setter)
+				if err := comp.AddParam(k1, v); err != nil {
+					return "", errors.Wrap(err, "add param")
+				}
 
 				builders = append(builders, fmt.Sprintf("%s(%s)", setter, k1))
 			}
