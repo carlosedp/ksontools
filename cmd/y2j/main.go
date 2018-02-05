@@ -13,11 +13,17 @@ var (
 )
 
 func main() {
-	logrus.SetOutput(ioutil.Discard)
 
 	var source string
 	flag.StringVar(&source, "source", "", "Kubernetes manifest")
+
+	var verbose bool
+	flag.BoolVar(&verbose, "version", true, "Verbse mode")
 	flag.Parse()
+
+	if !verbose {
+		logrus.SetOutput(ioutil.Discard)
+	}
 
 	conversion, err := yaml2jsonnet.NewConversion(source, libRoot)
 	if err != nil {
