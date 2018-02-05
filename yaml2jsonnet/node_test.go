@@ -3,7 +3,6 @@ package yaml2jsonnet
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -110,7 +109,6 @@ func TestNode_Search(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			sr, matchedPath, err := node.Search(tc.path...)
 			if tc.isErr {
-				spew.Dump(sr)
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)

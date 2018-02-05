@@ -26,6 +26,22 @@ func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 		root:       root,
 	}
 
+	ts, err := importYaml(r, doc.Properties)
+	if err != nil {
+		return nil, err
+	}
+
+	gvk, err := ts.GVK()
+	if err != nil {
+		return nil, errors.Wrap(err, "type spec is invalid")
+	}
+
+	doc.GVK = gvk
+
+	return doc, nil
+}
+
+func importYaml(r io.Reader, props Properties) (TypeSpec, error) {
 	var m map[string]interface{}
 	if err := yaml.NewDecoder(r).Decode(&m); err != nil {
 		return nil, errors.Wrap(err, "decode yaml")
@@ -38,18 +54,11 @@ func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 		case "kind", "apiVersion":
 			ts[k] = v.(string)
 		default:
-			doc.Properties[k] = v
+			props[k] = v
 		}
 	}
 
-	gvk, err := ts.GVK()
-	if err != nil {
-		return nil, errors.Wrap(err, "type spec is invalid")
-	}
-
-	doc.GVK = gvk
-
-	return doc, nil
+	return ts, nil
 }
 
 func (d *Document) Selector() string {
@@ -77,7 +86,8 @@ func (d *Document) Generate() (string, error) {
 
 	var names []string
 	for k := range d.Properties {
-		names = append(names, k)
+		s := k.(string)
+		names = append(names, s)
 	}
 	sort.Strings(names)
 

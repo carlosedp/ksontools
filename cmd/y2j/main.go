@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 
 	"github.com/bryanl/woowoo/yaml2jsonnet"
 	"github.com/sirupsen/logrus"
@@ -12,6 +13,8 @@ var (
 )
 
 func main() {
+	logrus.SetOutput(ioutil.Discard)
+
 	var source string
 	flag.StringVar(&source, "source", "", "Kubernetes manifest")
 	flag.Parse()
