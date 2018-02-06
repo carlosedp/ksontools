@@ -3,7 +3,7 @@ package yaml2jsonnet
 import (
 	"bytes"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/pkg/errors"

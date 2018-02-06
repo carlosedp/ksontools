@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/bryanl/woowoo/yaml2jsonnet/pkg/parser"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
+	"github.com/google/go-jsonnet/parser"
 	"github.com/pkg/errors"
 )
 

@@ -101,7 +101,7 @@ type IfSpec struct {
 // expr for x in arr1 for y in arr2 if x % 2 == 0 for z in arr3
 // The if is attached to the y forspec.
 //
-// It desugar to:
+// It desugares to:
 // flatMap(\x ->
 //         flatMap(\y ->
 //                 flatMap(\z -> [expr], arr3)
@@ -444,6 +444,9 @@ const (
 	ObjectFieldExpr                        // '['expr1']':[:[:]] expr2
 	ObjectFieldStr                         // expr1:[:[:]] expr2
 	ObjectLocal                            // local id = expr2
+	ObjectNullID                           // null id
+	ObjectNullExpr                         // null '['expr1']'
+	ObjectNullStr                          // null expr1
 )
 
 type ObjectFieldHide int
@@ -466,23 +469,10 @@ type ObjectField struct {
 	Params        *Parameters // If methodSugar == true then holds the params.
 	TrailingComma bool        // If methodSugar == true then remembers the trailing comma
 	Expr2, Expr3  Node        // In scope of the object (can see self).
-
-	// TODO: (bryanl) these are changes made for ksonnet that need to be
-	// submitted upstream
-
-	// Comment is a comment
-	Comment *Comment
-	// Oneline prints this field on a single line.
-	Oneline bool
 }
 
 func ObjectFieldLocalNoMethod(id *Identifier, body Node) ObjectField {
-	return ObjectField{
-		Kind:  ObjectLocal,
-		Hide:  ObjectFieldVisible,
-		Id:    id,
-		Expr2: body,
-	}
+	return ObjectField{ObjectLocal, ObjectFieldVisible, false, false, nil, nil, id, nil, false, body, nil}
 }
 
 type ObjectFields []ObjectField
@@ -495,9 +485,6 @@ type Object struct {
 	NodeBase
 	Fields        ObjectFields
 	TrailingComma bool
-
-	// TODO: (bryanl) submit this change upstream once printer is integrated.
-	Oneline bool
 }
 
 // ---------------------------------------------------------------------------

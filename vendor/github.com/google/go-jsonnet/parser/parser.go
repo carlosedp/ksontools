@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
 )
 
 type precedence int

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
+	"github.com/google/go-jsonnet/ast"
 )
 
 // ---------------------------------------------------------------------------

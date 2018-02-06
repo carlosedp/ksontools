@@ -14,6 +14,12 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  name = "github.com/blang/semver"
+  packages = ["."]
+  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
+  version = "v3.5.1"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -50,10 +56,19 @@
   revision = "a64b8214730256be97296f5ff52587aa78769445"
 
 [[projects]]
-  branch = "explore-yaml-to-jsonnet"
+  branch = "master"
+  name = "github.com/google/go-jsonnet"
+  packages = [
+    "ast",
+    "parser"
+  ]
+  revision = "f46dea2835bc4d5138d279753643c970250ef683"
+
+[[projects]]
+  branch = "chained-applies"
   name = "github.com/ksonnet/ksonnet-lib"
   packages = [
-    "ksonnet-gen/ast",
+    "ksonnet-gen/astext",
     "ksonnet-gen/jsonnet",
     "ksonnet-gen/ksonnet",
     "ksonnet-gen/kubespec",
@@ -61,7 +76,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "9bd20a9de0f66dc9bb6be44f037a34ecac43132f"
+  revision = "344200ab8409531ef50b22d69226bef30a65c7bf"
   source = "https://github.com/bryanl/ksonnet-lib"
 
 [[projects]]
@@ -153,6 +168,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "72417fc2d0beb1573d172b2811b8cc76fdd87236964cffa815c8da7b90799a23"
+  inputs-digest = "1f811ca08761c23ba2a4811d5fcf30dc2f5fdab54e324ab57587c5c0ed9aa0cc"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -48,9 +48,4 @@
 [[constraint]]
   name = "github.com/ksonnet/ksonnet-lib"
   source = "https://github.com/bryanl/ksonnet-lib"
-  branch = "explore-yaml-to-jsonnet"
-
-[[constraint]]
-  name = "github.com/google/go-jsonnet"
-  source = "https://github.com/bryanl/go-jsonnet"
-  branch = "hacked-ast"
+  branch = "chained-applies"
