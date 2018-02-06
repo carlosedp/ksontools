@@ -8,8 +8,9 @@ import (
 
 // LocalEntry is a local entry.
 type LocalEntry struct {
-	Path   string
-	Setter string
+	Path      string
+	Setter    string
+	ParamName string
 }
 
 // Locals are local definitions for jsonnet.
@@ -42,7 +43,8 @@ func (l *Locals) Generate() ([]Declaration, error) {
 			// find index which equals Name
 			if parts[i] == l.Name {
 				s := strings.Join(parts[i:], ".")
-				candidates[s] = append(candidates[s], entry.Setter)
+				candidates[s] = append(candidates[s],
+					fmt.Sprintf("%s(params.%s)", entry.Setter, entry.ParamName))
 				break
 			}
 
@@ -77,7 +79,7 @@ func (l *Locals) Generate() ([]Declaration, error) {
 		}
 
 		for _, setter := range setters {
-			apply = fmt.Sprintf("%s.%s(foo)", apply, setter)
+			apply = fmt.Sprintf("%s.%s", apply, setter)
 		}
 
 		parts := strings.Split(applyBase, ".")

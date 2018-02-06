@@ -3,10 +3,21 @@ package yaml2jsonnet
 import (
 	"fmt"
 	"sort"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
+// PropertyPath contains a property path.
+type PropertyPath struct {
+	Path  []string
+	Value interface{}
+}
+
+// Properties are document properties
 type Properties map[interface{}]interface{}
 
+// Paths returns a list of paths in properties.
 func (p Properties) Paths(gvk GVK) []PropertyPath {
 	ch := make(chan PropertyPath)
 
@@ -22,10 +33,6 @@ func (p Properties) Paths(gvk GVK) []PropertyPath {
 	}
 
 	return out
-}
-
-type PropertyPath struct {
-	Path []string
 }
 
 func iterateMap(ch chan PropertyPath, base []string, m map[interface{}]interface{}) {
@@ -56,73 +63,45 @@ func iterateMap(ch chan PropertyPath, base []string, m map[interface{}]interface
 			ch <- PropertyPath{
 				Path: append(base, name),
 			}
-
 		}
 	}
-
 }
 
-func intersection(a []string, b []string) [][]string {
-	if isStringSliceEqual(a, b) {
-		return [][]string{a}
+// Value returns the value at a path.
+func (p Properties) Value(path []string) (interface{}, error) {
+	return valueSearch(path, p)
+}
+
+func valueSearch(path []string, m map[interface{}]interface{}) (interface{}, error) {
+	var keys []interface{}
+	for k := range m {
+		keys = append(keys, k)
 	}
 
-	var inter []string
+	sort.SliceStable(keys, func(i, j int) bool {
+		a := keys[i].(string)
+		b := keys[j].(string)
 
-	low, high := a, b
-	if len(a) > len(b) {
-		low = b
-		high = a
-	}
+		return a < b
+	})
 
-	done := false
-	for i, l := range low {
-		for j, h := range high {
-			f1 := i + 1
-			f2 := j + 1
-			if l == h {
-				inter = append(inter, h)
-				if f1 < len(low) && f2 < len(high) {
-					if low[f1] != high[f2] {
-						done = true
-					}
+	for i := range keys {
+		name := keys[i].(string)
+		if name == path[0] {
+
+			switch t := m[name].(type) {
+			default:
+				panic(fmt.Sprintf("not sure what to do with %T", t))
+			case map[interface{}]interface{}:
+				if len(path) == 1 {
+					return t, nil
 				}
-				high = high[:j+copy(high[j:], high[j+1:])]
-				break
+				return valueSearch(path[1:], t)
+			case string, int, []interface{}:
+				return t, nil
 			}
 		}
-		if done {
-			break
-		}
 	}
 
-	if isStringSliceEqual(a, inter) {
-		return [][]string{a}
-	} else if isStringSliceEqual(b, inter) {
-		return [][]string{b}
-	}
-
-	return [][]string{a, b}
-}
-
-func isStringSliceEqual(a, b []string) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-
-	return true
+	return nil, errors.Errorf("unable to find %s", strings.Join(path, "."))
 }

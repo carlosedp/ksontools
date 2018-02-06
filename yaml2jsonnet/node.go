@@ -13,25 +13,6 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-func FindType(gvk GVK, node ast.Node) (*ast.Object, error) {
-	group, err := FindNode(node, gvk.Group)
-	if err != nil {
-		return nil, errors.Wrap(err, "find group")
-	}
-
-	version, err := FindNode(group, gvk.Version)
-	if err != nil {
-		return nil, errors.Wrap(err, "find version")
-	}
-
-	kind, err := FindNode(version, gvk.Kind)
-	if err != nil {
-		return nil, errors.Wrap(err, "find kind")
-	}
-
-	return kind, nil
-}
-
 func FindNode(node ast.Node, name string) (*ast.Object, error) {
 	root, ok := node.(*ast.Object)
 	if !ok {
@@ -74,63 +55,13 @@ func NewNode(name string, obj *ast.Object) *Node {
 	}
 }
 
-func (n *Node) Property(name string) (*Node, error) {
-	mixins, err := n.Mixins()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, mixin := range mixins {
-		if name == mixin.name {
-
-			_, err := mixin.Properties()
-			if err != nil {
-				return nil, errors.Wrap(err, "looking inside mixin")
-			}
-
-			return &mixin, nil
-		}
-	}
-
-	return nil, errors.Errorf("property %s not found", name)
-}
-
-func (n *Node) Mixins() ([]Node, error) {
-	if n.obj == nil {
-		return nil, errors.New("object is nil")
-	}
-
-	mixinObj, err := FindNode(n.obj, "mixin")
-	if err != nil {
-		return nil, errors.New("object does not have a mixin field")
-	}
-
-	var mixins []Node
-	for _, of := range mixinObj.Fields {
-		if of.Id == nil {
-			return nil, errors.New("mixin field has nil identifier")
-		}
-
-		id := string(*of.Id)
-
-		// mixins are objects.
-		obj, ok := of.Expr2.(*ast.Object)
-		if ok {
-			n := NewNode(id, obj)
-			n.IsMixin = true
-			mixins = append(mixins, *n)
-		}
-	}
-
-	return mixins, nil
-}
-
 type SearchResult struct {
 	Fields    []string
 	Functions []string
 	Types     []string
 
 	Setter string
+	Value  interface{}
 }
 
 func (n *Node) Search(path ...string) (SearchResult, []string, error) {

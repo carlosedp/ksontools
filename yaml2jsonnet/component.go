@@ -2,13 +2,11 @@ package yaml2jsonnet
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -170,47 +168,73 @@ func (c *Component) Generate(obj ast.Node) (string, error) {
 }
 
 func (c *Component) AddParam(name string, value interface{}) error {
+	return addParam(c.params, name, value)
+}
+
+func addParam(parent *nodemaker.Object, name string, value interface{}) error {
 	keyName := nodemaker.InheritedKey(name)
 
 	switch t := value.(type) {
 	default:
-		logrus.WithFields(logrus.Fields{
-			"name":  name,
-			"value": fmt.Sprintf("%#v", t),
-			"type":  fmt.Sprintf("%T", t),
-		}).Error("adding param")
+		return errors.Errorf("unable to handle param %s of type %T", name, t)
 	case string:
-		c.params.Set(keyName, nodemaker.NewStringDouble(t))
+		parent.Set(keyName, nodemaker.NewStringDouble(t))
 	case int:
-		c.params.Set(keyName, nodemaker.NewInt(t))
+		parent.Set(keyName, nodemaker.NewInt(t))
 	case float64:
-		c.params.Set(keyName, nodemaker.NewFloat(t))
+		parent.Set(keyName, nodemaker.NewFloat(t))
+	case []interface{}:
+		var nodes []nodemaker.Noder
+		for _, elem := range t {
+			node, err := createNode(elem)
+			if err != nil {
+				return errors.Wrap(err, "add to array")
+			}
+			nodes = append(nodes, node)
+		}
+
+		parent.Set(keyName, nodemaker.NewArray(nodes))
 	case map[interface{}]interface{}:
 		o := nodemaker.NewObject()
-		for k, v := range t {
-			k1, ok := k.(string)
+		for k := range t {
+			n, ok := k.(string)
 			if !ok {
-				return errors.Errorf("param %s is not a string key", name)
+				return errors.Errorf("object key is not string (%T)", k)
 			}
 
-			nestedKeyName := nodemaker.InheritedKey(k1)
-			switch t1 := v.(type) {
-			default:
-				logrus.WithFields(logrus.Fields{
-					"name":  k1,
-					"value": fmt.Sprintf("%#v", t1),
-					"type":  fmt.Sprintf("%T", t1),
-				}).Error("adding object field param")
-			case string:
-				o.Set(nestedKeyName, nodemaker.NewStringDouble(t1))
-			case int:
-				o.Set(nestedKeyName, nodemaker.NewInt(t1))
-			case float64:
-				o.Set(nestedKeyName, nodemaker.NewFloat(t1))
+			if err := addParam(o, n, t[k]); err != nil {
+				return errors.Wrap(err, "add child key")
 			}
 		}
 
-		c.params.Set(keyName, o)
+		parent.Set(keyName, o)
 	}
+
 	return nil
+}
+
+func createNode(item interface{}) (nodemaker.Noder, error) {
+	switch t := item.(type) {
+	default:
+		return nil, errors.Errorf("unable to create node of type %T", t)
+	case int:
+		return nodemaker.NewInt(t), nil
+	case string:
+		return nodemaker.NewStringDouble(t), nil
+	case float64:
+		return nodemaker.NewFloat(t), nil
+	case map[interface{}]interface{}:
+		parent := nodemaker.NewObject()
+		for k := range t {
+			name, ok := k.(string)
+			if !ok {
+				return nil, errors.Errorf("object key is not string (%T)", k)
+			}
+			if err := addParam(parent, name, t[k]); err != nil {
+				return nil, errors.Wrap(err, "add child key")
+			}
+		}
+
+		return parent, nil
+	}
 }

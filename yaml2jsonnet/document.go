@@ -1,6 +1,7 @@
 package yaml2jsonnet
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
@@ -89,10 +90,31 @@ func (d *Document) Generate() (string, error) {
 			return "", errors.Wrapf(err, "search path %s", strings.Join(path.Path, "."))
 		}
 
+		manifestPath := realPath[4:]
+		var paramName bytes.Buffer
+		for i := range manifestPath {
+			part := manifestPath[i]
+			if i > 0 {
+				part = strings.Title(part)
+			}
+
+			paramName.WriteString(part)
+		}
+
+		v, err := d.Properties.Value(manifestPath)
+		if err != nil {
+			return "", errors.Wrapf(err, "retrieve manifest values for %s", strings.Join(path.Path, "."))
+		}
+
+		if err := comp.AddParam(paramName.String(), v); err != nil {
+			return "", errors.Wrapf(err, "add param %s to component", paramName.String())
+		}
+
 		k := strings.Join(realPath[:len(realPath)-1], ".")
 		entry := LocalEntry{
-			Path:   k,
-			Setter: sr.Setter,
+			Path:      k,
+			Setter:    sr.Setter,
+			ParamName: paramName.String(),
 		}
 
 		locals.Add(entry)
@@ -109,83 +131,6 @@ func (d *Document) Generate() (string, error) {
 		kindParts = append(kindParts, decl.Name)
 		comp.AddDeclaration(decl)
 	}
-
-	// spew.Dump(locals)
-
-	// obj, err := FindType(d.GVK, d.root)
-	// if err != nil {
-	// 	return "", errors.Wrap(err, "find root node")
-	// }
-
-	// var mixinNames []string
-
-	// root := NewNode(d.GVK.Kind, obj)
-
-	// var names []string
-	// for k := range d.Properties {
-	// 	s := k.(string)
-	// 	names = append(names, s)
-	// }
-	// sort.Strings(names)
-
-	// for _, name := range names {
-	// 	value := d.Properties[name]
-	// 	logger := logrus.WithFields(logrus.Fields{
-	// 		"name": name,
-	// 	})
-
-	// 	var builders []string
-
-	// 	switch t := value.(type) {
-	// 	default:
-	// 		logger.WithField("type", fmt.Sprintf("%T", t)).
-	// 			Warn("not sure what to do with this")
-	// 	case map[interface{}]interface{}:
-	// 		node, err := root.Property(name)
-	// 		if err != nil {
-	// 			return "", errors.Wrapf(err, "inspect property %s", name)
-	// 		}
-
-	// 		if node.IsMixin {
-	// 			logrus.WithField("mixinName", node.name).Info("found mixin")
-
-	// 		}
-
-	// 		for k, v := range t {
-	// 			k1 := k.(string)
-	// 			setter, err := node.FindFunction(name, k1)
-	// 			if err != nil {
-	// 				logger.Warnf("%s is a mixin", k1)
-	// 				continue
-	// 			}
-
-	// 			if err := comp.AddParam(k1, v); err != nil {
-	// 				return "", errors.Wrap(err, "add param")
-	// 			}
-
-	// 			builders = append(builders, fmt.Sprintf("%s(%s)", setter, k1))
-	// 		}
-
-	// 		if node.IsMixin && len(builders) > 0 {
-	// 			method := fmt.Sprintf("%s.mixin.%s.%s",
-	// 				d.GVK.Kind,
-	// 				node.name,
-	// 				strings.Join(builders, "."))
-
-	// 			val := NewDeclarationApply(method)
-
-	// 			mixinName := fmt.Sprintf("%s%s", d.GVK.Kind, strings.Title(node.name))
-
-	// 			decl := Declaration{
-	// 				Name:  mixinName,
-	// 				Value: val,
-	// 			}
-	// 			comp.AddDeclaration(decl)
-
-	// 			mixinNames = append(mixinNames, mixinName)
-	// 		}
-	// 	}
-	// }
 
 	nodeInit := fmt.Sprintf("init%s", strings.Title(d.GVK.Kind))
 

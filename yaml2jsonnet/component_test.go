@@ -16,6 +16,20 @@ func TestComponent_Generate(t *testing.T) {
 	err = c.AddParam("int", 9)
 	require.NoError(t, err)
 
+	obj := map[interface{}]interface{}{
+		"a": 1,
+		"b": "c",
+		"d": map[interface{}]interface{}{
+			"nested": "deep",
+		},
+	}
+	err = c.AddParam("obj", obj)
+	require.NoError(t, err)
+
+	arr := []interface{}{1, 2, 3}
+	err = c.AddParam("arr", arr)
+	require.NoError(t, err)
+
 	c.AddDeclaration(Declaration{Name: "a", Value: NewDeclarationString("a")})
 	c.AddDeclaration(Declaration{Name: "b", Value: NewDeclarationString("b")})
 
