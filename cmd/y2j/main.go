@@ -18,7 +18,7 @@ func main() {
 	flag.StringVar(&source, "source", "", "Kubernetes manifest")
 
 	var verbose bool
-	flag.BoolVar(&verbose, "version", true, "Verbse mode")
+	flag.BoolVar(&verbose, "version", true, "Verbose mode")
 	flag.Parse()
 
 	if !verbose {

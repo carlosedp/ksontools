@@ -47,5 +47,5 @@
 
 [[constraint]]
   name = "github.com/ksonnet/ksonnet-lib"
-  source = "https://github.com/bryanl/ksonnet-lib"
-  branch = "chained-applies"
+  source = "github.com/bryanl/ksonnet-lib"
+  branch = "generate-ksonnet-extension"

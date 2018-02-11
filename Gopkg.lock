@@ -65,7 +65,7 @@
   revision = "f46dea2835bc4d5138d279753643c970250ef683"
 
 [[projects]]
-  branch = "chained-applies"
+  branch = "generate-ksonnet-extension"
   name = "github.com/ksonnet/ksonnet-lib"
   packages = [
     "ksonnet-gen/astext",
@@ -76,8 +76,8 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "344200ab8409531ef50b22d69226bef30a65c7bf"
-  source = "https://github.com/bryanl/ksonnet-lib"
+  revision = "27950c2502c34f12f9780356013085b5ef63b952"
+  source = "github.com/bryanl/ksonnet-lib"
 
 [[projects]]
   branch = "master"
@@ -168,6 +168,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1f811ca08761c23ba2a4811d5fcf30dc2f5fdab54e324ab57587c5c0ed9aa0cc"
+  inputs-digest = "51e1bab093600af4b10f33884106c9a6fc77c3b0e658f6cb3b6a061f7fc2c267"
   solver-name = "gps-cdcl"
   solver-version = 1
