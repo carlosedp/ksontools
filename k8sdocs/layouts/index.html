@@ -1,0 +1,27 @@
+{{ define "main" }}
+
+    {{ range where .Pages.ByTitle "Section" "groups" }}
+
+    <div class="row">
+        <div class="col">
+            <h2>{{ .Title }}</h2>
+
+            <p>{{ .Content }}</p>
+
+            <ul class="list-inline">
+            {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
+            <li class="list-inline-item">
+            {{ .Title }}
+            </li>
+            <hr>
+            derp - {{ printf "%#v" .Section }}
+            <hr>
+            {{ end }}
+            </ul>
+
+        </div>
+    </div>
+
+    {{ end }}
+
+{{ end }}

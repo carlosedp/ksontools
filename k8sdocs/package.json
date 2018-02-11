@@ -1,0 +1,22 @@
+{
+  "name": "k8sdocs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bootstrap": "^4.0.0",
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-autoprefixer": "^4.1.0",
+    "gulp-hash": "^4.2.2",
+    "gulp-sass": "^3.1.0",
+    "jquery": "^1.9.1",
+    "popper.js": "^1.12.9"
+  }
+}
