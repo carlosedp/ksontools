@@ -59,6 +59,7 @@
   branch = "master"
   name = "github.com/google/go-jsonnet"
   packages = [
+    ".",
     "ast",
     "parser"
   ]
@@ -168,6 +169,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "51e1bab093600af4b10f33884106c9a6fc77c3b0e658f6cb3b6a061f7fc2c267"
+  inputs-digest = "18839507e4e35641d6862c489e41094a54b92d4e73cff3524ee15b6458d6fb00"
   solver-name = "gps-cdcl"
   solver-version = 1

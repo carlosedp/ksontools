@@ -9,13 +9,23 @@
             <p>{{ .Content }}</p>
 
             <ul class="list-inline">
-            {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
-            <li class="list-inline-item">
-            {{ .Title }}
-            </li>
-            <hr>
-            derp - {{ printf "%#v" .Section }}
-            <hr>
+                {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
+                {{ if (isset .Params "versions" )}}
+                <li class="list-inline-item col-3">
+                    <div class="row">
+                        <div class="col">
+                            {{ .Title }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            {{ range .Params.versions }}
+                            <a href="#" class="badge badge-dark">{{ . }}</a>
+                            {{ end }}
+                        </div>
+                    </div>
+                </li>
+                {{ end }}
             {{ end }}
             </ul>
 
