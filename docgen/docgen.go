@@ -72,10 +72,16 @@ func (dg *Docgen) generateGroup(name string, node ast.Node) error {
 	}
 
 	for gk, versions := range dg.versionLookup {
-		fm := newKindFrontMatter(gk.kind, versions)
+		fm := newKindFrontMatter(gk.group, gk.kind, versions)
 
 		if err := dg.hugo.writeKind(gk.group, gk.kind, fm); err != nil {
-			return errors.Wrap(err, "write kind")
+			return errors.Wrapf(err, "write kind %s/%s", gk.group, gk.kind)
+		}
+
+		for _, version := range versions {
+			if err := dg.hugo.writeVersionedKind(gk.group, version, gk.kind); err != nil {
+				return errors.Wrapf(err, "write versioned kind %s/%s/%s", gk.group, version, gk.kind)
+			}
 		}
 	}
 

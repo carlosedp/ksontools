@@ -19,8 +19,9 @@
                     </div>
                     <div class="row">
                         <div class="col">
+                            {{ $parent := . }}
                             {{ range .Params.versions }}
-                            <a href="#" class="badge badge-dark">{{ . }}</a>
+                            <a href="/{{ $parent.Params.parent_group }}/{{ . }}/{{ $parent.Params.kind_name }}" class="badge badge-dark">{{ . }}</a>
                             {{ end }}
                         </div>
                     </div>

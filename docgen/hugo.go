@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -43,19 +44,27 @@ func (h *hugo) mkdir(path ...string) error {
 }
 
 func (h *hugo) writeGroup(group string, fm *hugoGroup) error {
-	return h.writeDoc("groups", group, fm.Name, fm)
+	return h.writeDoc([]string{"groups"}, group, fm.Name, fm)
 }
 
 func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
-	return h.writeDoc(group, kind, "future kind desc", fm)
+	return h.writeDoc([]string{group}, kind, "future kind desc", fm)
 }
 
-func (h *hugo) writeDoc(category, name, content string, fm frontMatterer) error {
+func (h *hugo) writeVersionedKind(group, version, kind string) error {
+	category := []string{group, version}
+	fm := newHugoVersionedKind(version, kind)
+	return h.writeDoc(category, kind, "future versioned kind data", fm)
+}
+
+func (h *hugo) writeDoc(category []string, name, content string, fm frontMatterer) error {
 	logrus.WithFields(logrus.Fields{
-		"category": category,
+		"category": strings.Join(category, "/"),
 		"name":     name,
 	}).Info("writing doc")
-	if err := h.mkdir("content", category); err != nil {
+
+	parentPath := append([]string{"content"}, category...)
+	if err := h.mkdir(parentPath...); err != nil {
 		return errors.Wrapf(err, "create %s dir", category)
 	}
 
@@ -68,7 +77,8 @@ func (h *hugo) writeDoc(category, name, content string, fm frontMatterer) error 
 	buf.WriteString("\n")
 	buf.WriteString(content)
 
-	path := h.makePath("content", category, fm.Filename())
+	path := h.makePath(append(parentPath, fm.Filename())...)
+	// path := h.makePath("content", category, fm.Filename())
 	return ioutil.WriteFile(path, buf.Bytes(), 0644)
 }
 
@@ -98,6 +108,38 @@ func (h *hugo) cleanContents() error {
 		}
 	}
 	return nil
+}
+
+type versionedKindFrontMatter struct {
+	Title string    `json:"title"`
+	Date  time.Time `json:"date"`
+	Draft bool      `json:"draft"`
+}
+
+type hugoVersionedKind struct {
+	version string
+	kind    string
+}
+
+var _ frontMatterer = (*hugoVersionedKind)(nil)
+
+func newHugoVersionedKind(version, kind string) *hugoVersionedKind {
+	return &hugoVersionedKind{
+		version: version,
+		kind:    kind,
+	}
+}
+
+func (hvk *hugoVersionedKind) FrontMatter() interface{} {
+	return &versionedKindFrontMatter{
+		Title: hvk.kind,
+		Date:  time.Now().UTC(),
+		Draft: false,
+	}
+}
+
+func (hvk *hugoVersionedKind) Filename() string {
+	return hvk.kind + ".md"
 }
 
 func newGroupFrontMatter(name string) *hugoGroup {
@@ -135,24 +177,27 @@ func (hg *hugoGroup) Filename() string {
 }
 
 type kindFrontMatter struct {
-	Title    string    `json:"title"`
-	Date     time.Time `json:"date"`
-	Draft    bool      `json:"draft"`
-	KindName string    `json:"kind_name"`
-	Versions []string  `json:"versions"`
+	Title       string    `json:"title"`
+	Date        time.Time `json:"date"`
+	Draft       bool      `json:"draft"`
+	KindName    string    `json:"kind_name"`
+	Versions    []string  `json:"versions"`
+	ParentGroup string    `json:"parent_group"`
 }
 
 type hugoKind struct {
 	Title    string
+	group    string
 	Name     string
 	Versions []string
 }
 
 var _ frontMatterer = (*hugoKind)(nil)
 
-func newKindFrontMatter(name string, versions []string) *hugoKind {
+func newKindFrontMatter(group, name string, versions []string) *hugoKind {
 	return &hugoKind{
 		Title:    name,
+		group:    group,
 		Name:     name,
 		Versions: versions,
 	}
@@ -160,11 +205,12 @@ func newKindFrontMatter(name string, versions []string) *hugoKind {
 
 func (hk *hugoKind) FrontMatter() interface{} {
 	return &kindFrontMatter{
-		Title:    hk.Title,
-		Date:     time.Now().UTC(),
-		Draft:    false,
-		KindName: hk.Name,
-		Versions: hk.Versions,
+		Title:       hk.Title,
+		Date:        time.Now().UTC(),
+		Draft:       false,
+		KindName:    hk.Name,
+		Versions:    hk.Versions,
+		ParentGroup: hk.group,
 	}
 }
 
