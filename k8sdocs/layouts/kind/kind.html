@@ -7,7 +7,7 @@
     <ul>
         {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
             <li>
-                {{ .Title }}
+                <a href="#{{ .Params.current }}">{{ .Title }}</a>
                 {{ partial "kind/toc.html" . }}
             </li>
         {{ end }}
@@ -15,7 +15,12 @@
 
 
     {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
-        <h2>{{ .Title }}</h2>
+        <h2>
+            <a name="{{ .Params.current }}">
+                {{ .Title }}
+            </a>
+        </h2>
+
 
         {{ .Content }}
         {{ partial "kind/entry.html" . }}

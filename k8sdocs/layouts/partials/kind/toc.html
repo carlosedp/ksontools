@@ -1,7 +1,7 @@
  <ul>
     {{ range where .Site.Pages "Params.k8s_kind" .Params.current }}
         <li>
-            {{ .Params.title }}
+            <a href="#{{ .Params.current }}">{{ .Params.title }}</a>
             {{ partial "kind/toc.html" . }}
         </li>
     {{ end }}
