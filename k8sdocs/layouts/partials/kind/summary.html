@@ -1,0 +1,19 @@
+ <div class="row">
+    <div class="col">
+        {{ .Title }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        {{ $parent := . }}
+        {{ range $i, $e := .Params.versions }}
+            {{ if eq $i 0 }}
+                {{ $.Scratch.Set "badgeType" "badge-primary" }}
+            {{ else }}
+                {{ $.Scratch.Set "badgeType" "badge-secondary" }}
+            {{ end }}
+            <a href="/{{ $parent.Params.parent_group }}/{{ $e }}/{{ $parent.Params.kind_name }}" class="badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
+        {{ end }}
+    </div>
+</div>

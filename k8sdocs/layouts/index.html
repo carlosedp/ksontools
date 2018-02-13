@@ -12,19 +12,7 @@
                 {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
                 {{ if (isset .Params "versions" )}}
                 <li class="list-inline-item col-3">
-                    <div class="row">
-                        <div class="col">
-                            {{ .Title }}
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col">
-                            {{ $parent := . }}
-                            {{ range .Params.versions }}
-                            <a href="/{{ $parent.Params.parent_group }}/{{ . }}/{{ $parent.Params.kind_name }}" class="badge badge-dark">{{ . }}</a>
-                            {{ end }}
-                        </div>
-                    </div>
+                    {{ partial "kind/summary.html" . }}
                 </li>
                 {{ end }}
             {{ end }}

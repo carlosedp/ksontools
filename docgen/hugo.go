@@ -256,7 +256,7 @@ func (hk *hugoKind) FrontMatter() interface{} {
 		Date:        time.Now().UTC(),
 		Draft:       false,
 		KindName:    hk.Name,
-		Versions:    hk.Versions,
+		Versions:    sortVersions(hk.Versions),
 		ParentGroup: hk.group,
 	}
 }

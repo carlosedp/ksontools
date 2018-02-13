@@ -1,10 +1,17 @@
 package docgen
 
 import (
+	"regexp"
+	"sort"
+
 	"github.com/bryanl/woowoo/yaml2jsonnet"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
+)
+
+var (
+	reVersion = regexp.MustCompile(`^(v\d+)(.*?)$`)
 )
 
 // Import imports jsonnet
@@ -182,4 +189,42 @@ func iterateObject(node ast.Node, fn func(string, ast.Node) error) error {
 	}
 
 	return nil
+}
+
+func sortVersions(sl []string) []string {
+	parts := [][]string{}
+
+	for _, s := range sl {
+		matches := reVersion.FindAllStringSubmatch(s, -1)
+		if len(matches) == 1 {
+			parts = append(parts, matches[0][1:])
+		}
+	}
+
+	sort.Slice(parts, func(i, j int) bool {
+		if parts[i][0] < parts[j][0] {
+			return true
+		} else if parts[i][0] == parts[j][0] {
+			if parts[i][1] == "" {
+				return true
+			}
+
+			if parts[j][1] == "" {
+				return false
+			}
+
+			if parts[i][1] > parts[j][1] {
+				return true
+			}
+		}
+
+		return false
+	})
+
+	var out []string
+	for _, part := range parts {
+		out = append(out, part[0]+part[1])
+	}
+
+	return out
 }
