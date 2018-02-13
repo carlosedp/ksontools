@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type hugo struct {
@@ -53,31 +54,29 @@ func (h *hugo) writeProperty(group, version, kind string, property []string, fm 
 		category = append(category, property[i])
 	}
 
-	content := fmt.Sprintf("%s/%s/%s - %s", group, version, kind, strings.Join(property, "."))
 	id := property[len(property)-1]
-	return h.writeDoc(category, id, content, fm)
+	return h.writeDoc(category, id, fm)
 }
 
 func (h *hugo) writeGroup(group string, fm *hugoGroup) error {
-	return h.writeDoc([]string{"groups"}, group, fm.Name, fm)
+	return h.writeDoc([]string{"groups"}, group, fm)
 }
 
 func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
-	return h.writeDoc([]string{group}, kind, "future kind desc", fm)
+	return h.writeDoc([]string{group}, kind, fm)
 }
 
 func (h *hugo) writeVersionedKind(group, version, kind string) error {
 	category := []string{group, version}
 	fm := newHugoVersionedKind(group, version, kind)
-	content := fmt.Sprintf("%s/%s/%s", group, version, kind)
-	return h.writeDoc(category, kind, content, fm)
+	return h.writeDoc(category, kind, fm)
 }
 
-func (h *hugo) writeDoc(category []string, name, content string, fm frontMatterer) error {
-	// logrus.WithFields(logrus.Fields{
-	// 	"category": strings.Join(category, "/"),
-	// 	"name":     name,
-	// }).Info("writing doc")
+func (h *hugo) writeDoc(category []string, name string, fm frontMatterer) error {
+	logrus.WithFields(logrus.Fields{
+		"category": strings.Join(category, "/"),
+		"name":     name,
+	}).Debug("writing doc")
 
 	parentPath := append([]string{"content"}, category...)
 	if err := h.mkdir(parentPath...); err != nil {
@@ -96,7 +95,7 @@ func (h *hugo) writeDoc(category []string, name, content string, fm frontMattere
 	}
 
 	buf.WriteString("\n")
-	buf.WriteString(content)
+	buf.WriteString(fm.Content())
 
 	path := h.makePath(append(parentPath, fm.Filename())...)
 	return ioutil.WriteFile(path, buf.Bytes(), 0644)
@@ -172,6 +171,11 @@ func (hp *hugoProperty) Filename() string {
 	return hp.name() + ".md"
 }
 
+func (hp *hugoProperty) Content() string {
+	return fmt.Sprintf("placeholder %s/%s/%s - %s",
+		hp.group, hp.version, hp.kind, strings.Join(hp.property, "."))
+}
+
 type versionedKindFrontMatter struct {
 	Title   string    `json:"title"`
 	Date    time.Time `json:"date"`
@@ -212,6 +216,10 @@ func (hvk *hugoVersionedKind) Filename() string {
 	return hvk.kind + ".md"
 }
 
+func (hvk *hugoVersionedKind) Content() string {
+	return fmt.Sprintf("placeholder %s/%s/%s", hvk.group, hvk.version, hvk.kind)
+}
+
 func newGroupFrontMatter(name string) *hugoGroup {
 	return &hugoGroup{
 		Title: name,
@@ -244,6 +252,10 @@ func (hg *hugoGroup) FrontMatter() interface{} {
 
 func (hg *hugoGroup) Filename() string {
 	return hg.Name + ".md"
+}
+
+func (hg *hugoGroup) Content() string {
+	return fmt.Sprintf("placeholder for group %s", hg.Name)
 }
 
 type kindFrontMatter struct {
@@ -284,6 +296,10 @@ func (hk *hugoKind) FrontMatter() interface{} {
 	}
 }
 
+func (hk *hugoKind) Content() string {
+	return "kind placeholder"
+}
+
 func (hk *hugoKind) Filename() string {
 	return hk.Name + ".md"
 }
@@ -291,4 +307,5 @@ func (hk *hugoKind) Filename() string {
 type frontMatterer interface {
 	FrontMatter() interface{}
 	Filename() string
+	Content() string
 }

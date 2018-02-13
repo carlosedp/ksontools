@@ -3,10 +3,8 @@ package docgen
 import (
 	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/bryanl/woowoo/yaml2jsonnet"
-	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
@@ -16,8 +14,8 @@ var (
 	reVersion = regexp.MustCompile(`^(v\d+)(.*?)$`)
 )
 
-// Import imports jsonnet
-func Import(k8sLibPath, docsPath string) error {
+// Generate generates the docs
+func Generate(k8sLibPath, docsPath string) error {
 	node, err := yaml2jsonnet.ImportJsonnet(k8sLibPath)
 	if err != nil {
 		return errors.Wrap(err, "parse and evaluate source")
@@ -164,11 +162,6 @@ func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error
 }
 
 func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string) error {
-	logger := logrus.WithFields(logrus.Fields{
-		"gvk":  strings.Join([]string{group, version, kind}, "/"),
-		"root": strings.Join(root, "."),
-	})
-
 	switch t := node.(type) {
 	default:
 		return errors.Errorf("unknown type %T for %s", t, root[len(root)-1])
@@ -187,6 +180,10 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				continue
 			}
 
+			if id == "mixinInstance" {
+				continue
+			}
+
 			if id == "mixin" {
 				if err := dg.iterateProperties(of.Expr2, group, version, kind, root); err != nil {
 					return err
@@ -196,7 +193,6 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 
 			cur := append(root, id)
 			if of.Method != nil {
-				logger.WithField("id", id).Info("found function")
 				fm := newHugoProperty(group, version, kind, cur)
 				if id == "new" {
 					fm.weight = 10

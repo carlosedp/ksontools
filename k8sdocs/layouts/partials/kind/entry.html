@@ -1,0 +1,7 @@
+{{ range where .Site.Pages "Params.k8s_kind" .Params.current }}
+    <h2>{{ .Title }}</h2>
+
+    {{ .Content }}
+    {{ partial "kind/entry.html" .}}
+
+{{ end }}
