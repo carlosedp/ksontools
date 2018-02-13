@@ -3,6 +3,7 @@ package docgen
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -54,7 +55,8 @@ func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
 func (h *hugo) writeVersionedKind(group, version, kind string) error {
 	category := []string{group, version}
 	fm := newHugoVersionedKind(version, kind)
-	return h.writeDoc(category, kind, "future versioned kind data", fm)
+	content := fmt.Sprintf("%s/%s/%s", group, version, kind)
+	return h.writeDoc(category, kind, content, fm)
 }
 
 func (h *hugo) writeDoc(category []string, name, content string, fm frontMatterer) error {
@@ -70,7 +72,12 @@ func (h *hugo) writeDoc(category []string, name, content string, fm frontMattere
 
 	var buf bytes.Buffer
 
-	if err := json.NewEncoder(&buf).Encode(fm.FrontMatter()); err != nil {
+	b, err := json.MarshalIndent(fm.FrontMatter(), "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if _, err := buf.Write(b); err != nil {
 		return err
 	}
 
@@ -92,28 +99,15 @@ func (h *hugo) cleanContents() error {
 		return errors.Wrap(err, "check content path")
 	}
 
-	rootDir, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer rootDir.Close()
-	names, err := rootDir.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-	for _, name := range names {
-		err = os.RemoveAll(h.makePath(name))
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return os.RemoveAll(path)
 }
 
 type versionedKindFrontMatter struct {
-	Title string    `json:"title"`
-	Date  time.Time `json:"date"`
-	Draft bool      `json:"draft"`
+	Title  string    `json:"title"`
+	Date   time.Time `json:"date"`
+	Draft  bool      `json:"draft"`
+	Layout string    `json:"layout"`
+	Type   string    `json:"type"`
 }
 
 type hugoVersionedKind struct {
@@ -132,9 +126,11 @@ func newHugoVersionedKind(version, kind string) *hugoVersionedKind {
 
 func (hvk *hugoVersionedKind) FrontMatter() interface{} {
 	return &versionedKindFrontMatter{
-		Title: hvk.kind,
-		Date:  time.Now().UTC(),
-		Draft: false,
+		Title:  hvk.kind,
+		Date:   time.Now().UTC(),
+		Draft:  false,
+		Layout: "kind",
+		Type:   "kind",
 	}
 }
 
