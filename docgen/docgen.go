@@ -121,11 +121,30 @@ func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error
 
 	for _, of := range obj.Fields {
 		id := string(*of.Id)
+
+		if id == "mixin" {
+			child, ok := of.Expr2.(*ast.Object)
+			if !ok {
+				return errors.New("mixin was not an object")
+			}
+
+			for _, childOf := range child.Fields {
+				childID := string(*childOf.Id)
+
+				fm := newHugoProperty(group, version, kind, childID)
+				fm.weight = 100
+				if err := dg.hugo.writeProperty(group, version, kind, childID, fm); err != nil {
+					return err
+				}
+			}
+		}
+
 		if of.Method == nil {
 			continue
 		}
 
-		if err := dg.hugo.writeProperty(group, version, kind, id); err != nil {
+		fm := newHugoProperty(group, version, kind, id)
+		if err := dg.hugo.writeProperty(group, version, kind, id, fm); err != nil {
 			return err
 		}
 	}

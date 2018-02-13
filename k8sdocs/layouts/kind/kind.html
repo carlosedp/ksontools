@@ -3,7 +3,7 @@
     {{ .Content }}
 
     <ul>
-        {{ range where .Site.Pages.ByTitle "Params.k8s_kind" .Params.matcher }}
+        {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
             <li>
                 {{ .Title }}
             </li>

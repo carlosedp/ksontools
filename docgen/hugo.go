@@ -44,9 +44,8 @@ func (h *hugo) mkdir(path ...string) error {
 	return nil
 }
 
-func (h *hugo) writeProperty(group, version, kind, property string) error {
+func (h *hugo) writeProperty(group, version, kind, property string, fm *hugoProperty) error {
 	category := []string{group, version, kind}
-	fm := newHugoProperty(group, version, kind, property)
 	content := fmt.Sprintf("%s/%s/%s - %s", group, version, kind, property)
 	return h.writeDoc(category, property, content, fm)
 }
@@ -112,6 +111,7 @@ type propertyFrontMatter struct {
 	Title   string    `json:"title"`
 	Date    time.Time `json:"date"`
 	Draft   bool      `json:"draft"`
+	Weight  int       `json:"weight"`
 	K8SKind string    `json:"k8s_kind"`
 }
 
@@ -120,6 +120,7 @@ type hugoProperty struct {
 	version  string
 	kind     string
 	property string
+	weight   int
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
@@ -130,6 +131,7 @@ func newHugoProperty(group, version, kind, property string) *hugoProperty {
 		version:  version,
 		kind:     kind,
 		property: property,
+		weight:   10,
 	}
 }
 
@@ -138,6 +140,7 @@ func (hvk *hugoProperty) FrontMatter() interface{} {
 		Title:   hvk.property,
 		Date:    time.Now().UTC(),
 		Draft:   false,
+		Weight:  hvk.weight,
 		K8SKind: fmt.Sprintf("%s.%s.%s", hvk.group, hvk.version, hvk.kind),
 	}
 }
