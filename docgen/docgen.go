@@ -122,43 +122,6 @@ func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error
 	dg.versionLookup[gk] = append(dg.versionLookup[gk], version)
 
 	return dg.iterateProperties(node, group, version, kind, []string{})
-
-	// obj, ok := node.(*ast.Object)
-	// if !ok {
-	// 	return errors.Errorf("%s/%s/%s is not an object", group, version, kind)
-	// }
-
-	// for _, of := range obj.Fields {
-	// 	id := string(*of.Id)
-
-	// 	if id == "mixin" {
-	// 		child, ok := of.Expr2.(*ast.Object)
-	// 		if !ok {
-	// 			return errors.New("mixin was not an object")
-	// 		}
-
-	// 		for _, childOf := range child.Fields {
-	// 			childID := string(*childOf.Id)
-
-	// 			fm := newHugoProperty(group, version, kind, []string{childID})
-	// 			fm.weight = 100
-	// 			if err := dg.hugo.writeProperty(group, version, kind, childID, fm); err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 	}
-
-	// 	if of.Method == nil {
-	// 		continue
-	// 	}
-
-	// 	fm := newHugoProperty(group, version, kind, []string{id})
-	// 	if err := dg.hugo.writeProperty(group, version, kind, id, fm); err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	return nil
 }
 
 func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string) error {
@@ -197,6 +160,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				if id == "new" {
 					fm.weight = 10
 				}
+				fm.function = of.Method
 
 				if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
 					return err

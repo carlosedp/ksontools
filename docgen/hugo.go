@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -129,6 +131,7 @@ type hugoProperty struct {
 	kind     string
 	property []string
 	weight   int
+	function *ast.Function
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
@@ -172,8 +175,23 @@ func (hp *hugoProperty) Filename() string {
 }
 
 func (hp *hugoProperty) Content() string {
-	return fmt.Sprintf("placeholder %s/%s/%s - %s",
+	var buf bytes.Buffer
+	content := fmt.Sprintf("%s/%s/%s - %s",
 		hp.group, hp.version, hp.kind, strings.Join(hp.property, "."))
+	buf.WriteString(fmt.Sprintf("placeholder %s", content))
+
+	if hp.function != nil {
+		buf.WriteString("<div>")
+		buf.WriteString(`{{< highlight js >}}`)
+		buf.WriteString(hp.name())
+		if err := printer.Fprint(&buf, hp.function); err != nil {
+			logrus.WithError(err).WithField("id", content).Fatal("print property")
+		}
+		buf.WriteString(`{{< /highlight >}}`)
+		buf.WriteString("</div>")
+	}
+
+	return buf.String()
 }
 
 type versionedKindFrontMatter struct {
