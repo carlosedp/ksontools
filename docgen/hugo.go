@@ -44,6 +44,13 @@ func (h *hugo) mkdir(path ...string) error {
 	return nil
 }
 
+func (h *hugo) writeProperty(group, version, kind, property string) error {
+	category := []string{group, version, kind}
+	fm := newHugoProperty(group, version, kind, property)
+	content := fmt.Sprintf("%s/%s/%s - %s", group, version, kind, property)
+	return h.writeDoc(category, property, content, fm)
+}
+
 func (h *hugo) writeGroup(group string, fm *hugoGroup) error {
 	return h.writeDoc([]string{"groups"}, group, fm.Name, fm)
 }
@@ -54,7 +61,7 @@ func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
 
 func (h *hugo) writeVersionedKind(group, version, kind string) error {
 	category := []string{group, version}
-	fm := newHugoVersionedKind(version, kind)
+	fm := newHugoVersionedKind(group, version, kind)
 	content := fmt.Sprintf("%s/%s/%s", group, version, kind)
 	return h.writeDoc(category, kind, content, fm)
 }
@@ -85,7 +92,6 @@ func (h *hugo) writeDoc(category []string, name, content string, fm frontMattere
 	buf.WriteString(content)
 
 	path := h.makePath(append(parentPath, fm.Filename())...)
-	// path := h.makePath("content", category, fm.Filename())
 	return ioutil.WriteFile(path, buf.Bytes(), 0644)
 }
 
@@ -102,23 +108,64 @@ func (h *hugo) cleanContents() error {
 	return os.RemoveAll(path)
 }
 
+type propertyFrontMatter struct {
+	Title   string    `json:"title"`
+	Date    time.Time `json:"date"`
+	Draft   bool      `json:"draft"`
+	K8SKind string    `json:"k8s_kind"`
+}
+
+type hugoProperty struct {
+	group    string
+	version  string
+	kind     string
+	property string
+}
+
+var _ frontMatterer = (*hugoProperty)(nil)
+
+func newHugoProperty(group, version, kind, property string) *hugoProperty {
+	return &hugoProperty{
+		group:    group,
+		version:  version,
+		kind:     kind,
+		property: property,
+	}
+}
+
+func (hvk *hugoProperty) FrontMatter() interface{} {
+	return &propertyFrontMatter{
+		Title:   hvk.property,
+		Date:    time.Now().UTC(),
+		Draft:   false,
+		K8SKind: fmt.Sprintf("%s.%s.%s", hvk.group, hvk.version, hvk.kind),
+	}
+}
+
+func (hvk *hugoProperty) Filename() string {
+	return hvk.property + ".md"
+}
+
 type versionedKindFrontMatter struct {
-	Title  string    `json:"title"`
-	Date   time.Time `json:"date"`
-	Draft  bool      `json:"draft"`
-	Layout string    `json:"layout"`
-	Type   string    `json:"type"`
+	Title   string    `json:"title"`
+	Date    time.Time `json:"date"`
+	Draft   bool      `json:"draft"`
+	Layout  string    `json:"layout"`
+	Type    string    `json:"type"`
+	Matcher string    `json:"matcher"`
 }
 
 type hugoVersionedKind struct {
+	group   string
 	version string
 	kind    string
 }
 
 var _ frontMatterer = (*hugoVersionedKind)(nil)
 
-func newHugoVersionedKind(version, kind string) *hugoVersionedKind {
+func newHugoVersionedKind(group, version, kind string) *hugoVersionedKind {
 	return &hugoVersionedKind{
+		group:   group,
 		version: version,
 		kind:    kind,
 	}
@@ -126,11 +173,12 @@ func newHugoVersionedKind(version, kind string) *hugoVersionedKind {
 
 func (hvk *hugoVersionedKind) FrontMatter() interface{} {
 	return &versionedKindFrontMatter{
-		Title:  hvk.kind,
-		Date:   time.Now().UTC(),
-		Draft:  false,
-		Layout: "kind",
-		Type:   "kind",
+		Title:   hvk.kind,
+		Date:    time.Now().UTC(),
+		Draft:   false,
+		Layout:  "kind",
+		Type:    "kind",
+		Matcher: fmt.Sprintf("%s.%s.%s", hvk.group, hvk.version, hvk.kind),
 	}
 }
 

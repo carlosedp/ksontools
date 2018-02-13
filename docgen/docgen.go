@@ -100,12 +100,12 @@ func (dg *Docgen) generateVersion(group, version string, node ast.Node) error {
 	return nil
 }
 
-func (dg *Docgen) generateKind(group, version, name string, node ast.Node) error {
-	if name == "apiVersion" {
+func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error {
+	if kind == "apiVersion" {
 		return nil
 	}
 
-	gk := groupKind{group: group, kind: name}
+	gk := groupKind{group: group, kind: kind}
 
 	_, ok := dg.versionLookup[gk]
 	if !ok {
@@ -113,6 +113,22 @@ func (dg *Docgen) generateKind(group, version, name string, node ast.Node) error
 	}
 
 	dg.versionLookup[gk] = append(dg.versionLookup[gk], version)
+
+	obj, ok := node.(*ast.Object)
+	if !ok {
+		return errors.Errorf("%s/%s/%s is not an object", group, version, kind)
+	}
+
+	for _, of := range obj.Fields {
+		id := string(*of.Id)
+		if of.Method == nil {
+			continue
+		}
+
+		if err := dg.hugo.writeProperty(group, version, kind, id); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

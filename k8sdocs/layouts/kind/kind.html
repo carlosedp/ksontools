@@ -2,5 +2,12 @@
     <h1>{{ .Title }}</h1>
     {{ .Content }}
 
-    {{ printf "%#v" . }}
+    <ul>
+        {{ range where .Site.Pages.ByTitle "Params.k8s_kind" .Params.matcher }}
+            <li>
+                {{ .Title }}
+            </li>
+        {{ end }}
+    </ul>
+
 {{ end }}
