@@ -3,8 +3,10 @@ package docgen
 import (
 	"regexp"
 	"sort"
+	"strings"
 
 	"github.com/bryanl/woowoo/yaml2jsonnet"
+	"github.com/sirupsen/logrus"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
@@ -121,38 +123,100 @@ func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error
 
 	dg.versionLookup[gk] = append(dg.versionLookup[gk], version)
 
-	obj, ok := node.(*ast.Object)
-	if !ok {
-		return errors.Errorf("%s/%s/%s is not an object", group, version, kind)
-	}
+	return dg.iterateProperties(node, group, version, kind, []string{})
 
-	for _, of := range obj.Fields {
-		id := string(*of.Id)
+	// obj, ok := node.(*ast.Object)
+	// if !ok {
+	// 	return errors.Errorf("%s/%s/%s is not an object", group, version, kind)
+	// }
 
-		if id == "mixin" {
-			child, ok := of.Expr2.(*ast.Object)
-			if !ok {
-				return errors.New("mixin was not an object")
+	// for _, of := range obj.Fields {
+	// 	id := string(*of.Id)
+
+	// 	if id == "mixin" {
+	// 		child, ok := of.Expr2.(*ast.Object)
+	// 		if !ok {
+	// 			return errors.New("mixin was not an object")
+	// 		}
+
+	// 		for _, childOf := range child.Fields {
+	// 			childID := string(*childOf.Id)
+
+	// 			fm := newHugoProperty(group, version, kind, []string{childID})
+	// 			fm.weight = 100
+	// 			if err := dg.hugo.writeProperty(group, version, kind, childID, fm); err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 	}
+
+	// 	if of.Method == nil {
+	// 		continue
+	// 	}
+
+	// 	fm := newHugoProperty(group, version, kind, []string{id})
+	// 	if err := dg.hugo.writeProperty(group, version, kind, id, fm); err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	return nil
+}
+
+func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string) error {
+	logger := logrus.WithFields(logrus.Fields{
+		"gvk":  strings.Join([]string{group, version, kind}, "/"),
+		"root": strings.Join(root, "."),
+	})
+
+	switch t := node.(type) {
+	default:
+		return errors.Errorf("unknown type %T for %s", t, root[len(root)-1])
+	// this a type: metadataType:: hidden.meta.v1.objectMeta
+	case *ast.Index:
+		fm := newHugoProperty(group, version, kind, root)
+		if err := dg.hugo.writeProperty(group, version, kind, root, fm); err != nil {
+			return err
+		}
+	case *ast.Object:
+		obj := t
+		for _, of := range obj.Fields {
+			id := string(*of.Id)
+
+			if of.Kind == ast.ObjectLocal {
+				continue
 			}
 
-			for _, childOf := range child.Fields {
-				childID := string(*childOf.Id)
-
-				fm := newHugoProperty(group, version, kind, childID)
-				fm.weight = 100
-				if err := dg.hugo.writeProperty(group, version, kind, childID, fm); err != nil {
+			if id == "mixin" {
+				if err := dg.iterateProperties(of.Expr2, group, version, kind, root); err != nil {
 					return err
 				}
+				continue
 			}
-		}
 
-		if of.Method == nil {
-			continue
-		}
+			cur := append(root, id)
+			if of.Method != nil {
+				logger.WithField("id", id).Info("found function")
+				fm := newHugoProperty(group, version, kind, cur)
+				if id == "new" {
+					fm.weight = 10
+				}
 
-		fm := newHugoProperty(group, version, kind, id)
-		if err := dg.hugo.writeProperty(group, version, kind, id, fm); err != nil {
-			return err
+				if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			fm := newHugoProperty(group, version, kind, cur)
+			if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+				return err
+			}
+
+			if err := dg.iterateProperties(of.Expr2, group, version, kind, cur); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -2,12 +2,23 @@
     <h1>{{ .Title }}</h1>
     {{ .Content }}
 
+    <h2>Index</h2>
+
     <ul>
         {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
             <li>
                 {{ .Title }}
+                {{ partial "kind/toc.html" . }}
             </li>
         {{ end }}
     </ul>
+
+
+    {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
+        <h2>{{ .Title }}</h2>
+
+        {{ .Content }}
+    {{ end }}
+
 
 {{ end }}

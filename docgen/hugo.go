@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 type hugo struct {
@@ -44,10 +43,19 @@ func (h *hugo) mkdir(path ...string) error {
 	return nil
 }
 
-func (h *hugo) writeProperty(group, version, kind, property string, fm *hugoProperty) error {
+func (h *hugo) writeProperty(group, version, kind string, property []string, fm *hugoProperty) error {
 	category := []string{group, version, kind}
-	content := fmt.Sprintf("%s/%s/%s - %s", group, version, kind, property)
-	return h.writeDoc(category, property, content, fm)
+	for i := range property {
+		if i == len(property)-1 {
+			break
+		}
+
+		category = append(category, property[i])
+	}
+
+	content := fmt.Sprintf("%s/%s/%s - %s", group, version, kind, strings.Join(property, "."))
+	id := property[len(property)-1]
+	return h.writeDoc(category, id, content, fm)
 }
 
 func (h *hugo) writeGroup(group string, fm *hugoGroup) error {
@@ -66,10 +74,10 @@ func (h *hugo) writeVersionedKind(group, version, kind string) error {
 }
 
 func (h *hugo) writeDoc(category []string, name, content string, fm frontMatterer) error {
-	logrus.WithFields(logrus.Fields{
-		"category": strings.Join(category, "/"),
-		"name":     name,
-	}).Info("writing doc")
+	// logrus.WithFields(logrus.Fields{
+	// 	"category": strings.Join(category, "/"),
+	// 	"name":     name,
+	// }).Info("writing doc")
 
 	parentPath := append([]string{"content"}, category...)
 	if err := h.mkdir(parentPath...); err != nil {
@@ -113,40 +121,55 @@ type propertyFrontMatter struct {
 	Draft   bool      `json:"draft"`
 	Weight  int       `json:"weight"`
 	K8SKind string    `json:"k8s_kind"`
+	Current string    `json:"current"`
 }
 
 type hugoProperty struct {
 	group    string
 	version  string
 	kind     string
-	property string
+	property []string
 	weight   int
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
 
-func newHugoProperty(group, version, kind, property string) *hugoProperty {
+func newHugoProperty(group, version, kind string, property []string) *hugoProperty {
 	return &hugoProperty{
 		group:    group,
 		version:  version,
 		kind:     kind,
 		property: property,
-		weight:   10,
+		weight:   100,
 	}
 }
 
-func (hvk *hugoProperty) FrontMatter() interface{} {
+func (hp *hugoProperty) FrontMatter() interface{} {
+	kind := []string{hp.group, hp.version, hp.kind}
+	cur := append(kind, hp.property...)
+	for i := range hp.property {
+		if i == len(hp.property)-1 {
+			break
+		}
+
+		kind = append(kind, hp.property[i])
+	}
 	return &propertyFrontMatter{
-		Title:   hvk.property,
+		Title:   hp.name(),
 		Date:    time.Now().UTC(),
 		Draft:   false,
-		Weight:  hvk.weight,
-		K8SKind: fmt.Sprintf("%s.%s.%s", hvk.group, hvk.version, hvk.kind),
+		Weight:  hp.weight,
+		K8SKind: strings.Join(kind, "."),
+		Current: strings.Join(cur, "."),
 	}
 }
 
-func (hvk *hugoProperty) Filename() string {
-	return hvk.property + ".md"
+func (hp *hugoProperty) name() string {
+	return hp.property[len(hp.property)-1]
+}
+
+func (hp *hugoProperty) Filename() string {
+	return hp.name() + ".md"
 }
 
 type versionedKindFrontMatter struct {
