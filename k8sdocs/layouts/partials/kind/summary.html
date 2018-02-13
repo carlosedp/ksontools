@@ -8,12 +8,13 @@
     <div class="col">
         {{ $parent := . }}
         {{ range $i, $e := .Params.versions }}
+            {{ $path := (printf "/%s/%s/%s" $parent.Params.parent_group $e $parent.Params.kind_name)}}
             {{ if eq $i 0 }}
                 {{ $.Scratch.Set "badgeType" "badge-primary" }}
             {{ else }}
                 {{ $.Scratch.Set "badgeType" "badge-secondary" }}
             {{ end }}
-            <a href="/{{ $parent.Params.parent_group }}/{{ $e }}/{{ $parent.Params.kind_name }}" class="badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
+            <a href="{{ $path }}" class="badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
         {{ end }}
     </div>
 </div>
