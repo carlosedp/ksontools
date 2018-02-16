@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/bryanl/woowoo/pkg/docparser"
 	"github.com/google/go-jsonnet/ast"
-	"github.com/google/go-jsonnet/parser"
 	"github.com/pkg/errors"
 )
 
@@ -69,12 +69,12 @@ func ImportJsonnet(fileName string) (ast.Node, error) {
 		return nil, errors.Wrap(err, "read lib")
 	}
 
-	tokens, err := parser.Lex(fileName, string(b))
+	tokens, err := docparser.Lex(fileName, string(b))
 	if err != nil {
 		return nil, errors.Wrap(err, "lex lib")
 	}
 
-	node, err := parser.Parse(tokens)
+	node, err := docparser.Parse(tokens)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse lib")
 	}

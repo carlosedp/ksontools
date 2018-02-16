@@ -129,6 +129,7 @@ type hugoProperty struct {
 	group    string
 	version  string
 	kind     string
+	comment  string
 	property []string
 	weight   int
 	function *ast.Function
@@ -136,11 +137,12 @@ type hugoProperty struct {
 
 var _ frontMatterer = (*hugoProperty)(nil)
 
-func newHugoProperty(group, version, kind string, property []string) *hugoProperty {
+func newHugoProperty(group, version, kind, comment string, property []string) *hugoProperty {
 	return &hugoProperty{
 		group:    group,
 		version:  version,
 		kind:     kind,
+		comment:  comment,
 		property: property,
 		weight:   100,
 	}
@@ -178,7 +180,13 @@ func (hp *hugoProperty) Content() string {
 	var buf bytes.Buffer
 	content := fmt.Sprintf("%s/%s/%s - %s",
 		hp.group, hp.version, hp.kind, strings.Join(hp.property, "."))
-	buf.WriteString(fmt.Sprintf("placeholder %s", content))
+
+	sections := strings.Split(hp.comment, "\n")
+	for _, section := range sections {
+		buf.WriteString("<p>")
+		buf.WriteString(section)
+		buf.WriteString("</p>")
+	}
 
 	if hp.function != nil {
 		buf.WriteString("<div>")

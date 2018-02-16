@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/bryanl/woowoo/yaml2jsonnet"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
@@ -130,11 +131,11 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 		return errors.Errorf("unknown type %T for %s", t, root[len(root)-1])
 	// this a type: metadataType:: hidden.meta.v1.objectMeta
 	case *ast.Index:
-		fm := newHugoProperty(group, version, kind, root)
+		fm := newHugoProperty(group, version, kind, "", root)
 		if err := dg.hugo.writeProperty(group, version, kind, root, fm); err != nil {
 			return err
 		}
-	case *ast.Object:
+	case *astext.Object:
 		obj := t
 		for _, of := range obj.Fields {
 			id := string(*of.Id)
@@ -156,7 +157,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 
 			cur := append(root, id)
 			if of.Method != nil {
-				fm := newHugoProperty(group, version, kind, cur)
+				fm := newHugoProperty(group, version, kind, of.Comment.Text, cur)
 				if id == "new" {
 					fm.weight = 10
 				}
@@ -169,7 +170,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				continue
 			}
 
-			fm := newHugoProperty(group, version, kind, cur)
+			fm := newHugoProperty(group, version, kind, of.Comment.Text, cur)
 			if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
 				return err
 			}
@@ -188,7 +189,7 @@ func iterateObject(node ast.Node, fn func(string, ast.Node) error) error {
 		return errors.New("node was nil")
 	}
 
-	obj, ok := node.(*ast.Object)
+	obj, ok := node.(*astext.Object)
 	if !ok {
 		return errors.New("node was not an object")
 	}
