@@ -195,8 +195,8 @@ func (c *Catalog) Resource(group, version, kind string) (*Type, error) {
 		group, version, kind)
 }
 
-// TypesWithDescendant returns types who have the specificed definition as a descendant.
-// This list doesn't not include List types (e.g. DeploymentList).
+// TypesWithDescendant returns types who have the specified definition as a descendant.
+// This list does not include List types (e.g. DeploymentList).
 func (c *Catalog) TypesWithDescendant(definition string) ([]Type, error) {
 	types, err := c.Types()
 	if err != nil {

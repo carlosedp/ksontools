@@ -59,14 +59,13 @@
   branch = "master"
   name = "github.com/google/go-jsonnet"
   packages = [
-    ".",
     "ast",
     "parser"
   ]
   revision = "f46dea2835bc4d5138d279753643c970250ef683"
 
 [[projects]]
-  branch = "generate-ksonnet-extension"
+  branch = "functions-objects-should-be-oneline"
   name = "github.com/ksonnet/ksonnet-lib"
   packages = [
     "ksonnet-gen/astext",
@@ -77,7 +76,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "27950c2502c34f12f9780356013085b5ef63b952"
+  revision = "3d3a6198440f118b061e320e4870da19b4ea2fee"
   source = "github.com/bryanl/ksonnet-lib"
 
 [[projects]]
@@ -169,6 +168,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "18839507e4e35641d6862c489e41094a54b92d4e73cff3524ee15b6458d6fb00"
+  inputs-digest = "468548c9068ca2cc77d400ee751f87c8dbc24b1fbcb21d62e6e6b65a0bb693d5"
   solver-name = "gps-cdcl"
   solver-version = 1

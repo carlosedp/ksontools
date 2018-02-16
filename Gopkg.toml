@@ -48,4 +48,4 @@
 [[constraint]]
   name = "github.com/ksonnet/ksonnet-lib"
   source = "github.com/bryanl/ksonnet-lib"
-  branch = "generate-ksonnet-extension"
+  branch = "functions-objects-should-be-oneline"
