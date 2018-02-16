@@ -1,4 +1,5 @@
+disablePathToLower = true
 baseURL = "http://example.org/"
 languageCode = "en-us"
+pygmentsStyle = "friendly"
 title = "ksonnet lib API Documentation"
-disablePathToLower = true
