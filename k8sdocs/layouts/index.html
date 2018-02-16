@@ -1,26 +1,50 @@
 {{ define "main" }}
-
-    {{ range where .Pages.ByTitle "Section" "groups" }}
-
     <div class="row">
-        <div class="col">
-            <h2>{{ .Title }}</h2>
-
-            <p>{{ .Content }}</p>
-
-            <ul class="list-inline">
-                {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
-                {{ if (isset .Params "versions" )}}
-                <li class="list-inline-item col-3">
-                    {{ partial "kind/summary.html" . }}
-                </li>
-                {{ end }}
-            {{ end }}
-            </ul>
-
+        <div class="col-2">
+            <div class="row toc fixed-top">
+                <ul class="section-nav">
+                    {{ range where .Pages.ByTitle "Section" "groups" }}
+                        <li>
+                            <a href="#{{.Title}}">{{ .Title }}</a>
+                        </li>
+                    {{ end }}
+                </ul>
+            </div>
         </div>
-    </div>
 
-    {{ end }}
+
+        <div class="col-10">
+            <div class="row">
+                {{ range where .Pages.ByTitle "Section" "groups" }}
+                    <a name="{{.Title}}">
+                        <h2>{{ .Title }}</h2>
+                    </a>
+
+                    <div>{{ .Content }}</div>
+
+                    <table class="table table-striped table-hover table-sm group">
+                        <thead>
+                            <tr>
+                                <th>Kind</th>
+                                <th>Versions</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {{ range where .Site.Pages.ByTitle "Section" .Params.group_name }}
+                                {{ if (isset .Params "versions" )}}
+                                    {{ partial "kind/summary.html" . }}
+                                {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+
+                {{ end }}
+            </div>
+        </div>
+
+
+
 
 {{ end }}

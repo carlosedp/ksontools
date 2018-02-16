@@ -19,7 +19,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .container.app {
-    padding-top: 20px;
+    padding-top: 50px;
+}
+
+table.group {
+    .kind {
+        word-wrap: break;
+    }
 }
 
 .kind-summary {
@@ -30,6 +36,6 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     }
 }
 
-.summary {
-    min-height: 150px;
+.toc {
+    top: 4rem;
 }

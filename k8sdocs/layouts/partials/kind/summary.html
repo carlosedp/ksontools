@@ -1,11 +1,6 @@
-<div class="row">
-    <div class="col">
-        {{ .Title }}
-    </div>
-</div>
-
-<div class="row">
-    <div class="col">
+<tr >
+    <td class="kind">{{ .Title }}</td>
+    <td class="versions">
         {{ $parent := . }}
         {{ range $i, $e := .Params.versions }}
             {{ $path := (printf "/%s/%s/%s" $parent.Params.parent_group $e $parent.Params.kind_name)}}
@@ -15,14 +10,14 @@
                 {{ $.Scratch.Set "badgeType" "badge-secondary" }}
             {{ end }}
             {{ $id := (printf "kind-version-%s-%s" $parent.Params.parent_group $parent.Params.kind_name) }}
-            <a id="{{ $id }}" href="{{ $path }}" data-version="{{$e}}" class="kind-version badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
+            <div>
+                <a id="{{ $id }}" href="{{ $path }}" data-version="{{$e}}" class="kind-version badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
+            </div>
         {{ end }}
-    </div>
-</div>
+    </td>
 
-{{ $id := (printf "summary-group-kind-%s-%s" .Params.parent_group .Params.kind_name) }}
-<div id = "{{ $id }}" class="row summary">
-    <div class="col">
-        <p>{{ .Content }}</p>
-    </div>
-</div>
+    <td>
+        {{ $id := (printf "summary-group-kind-%s-%s" .Params.parent_group .Params.kind_name) }}
+        <div id="{{ $id }}" class="summary">{{ .Content }}</div>
+    </td>
+</tr>

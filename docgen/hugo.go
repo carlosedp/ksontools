@@ -258,7 +258,6 @@ func (hvk *hugoVersionedKind) Filename() string {
 
 func (hvk *hugoVersionedKind) Content() (string, error) {
 	return hvk.comment, nil
-	// return fmt.Sprintf("placeholder %s/%s/%s", hvk.group, hvk.version, hvk.kind)
 }
 
 func newGroupFrontMatter(name string) *hugoGroup {
@@ -296,7 +295,7 @@ func (hg *hugoGroup) Filename() string {
 }
 
 func (hg *hugoGroup) Content() (string, error) {
-	return fmt.Sprintf("placeholder for group %s", hg.Name), nil
+	return fmt.Sprintf("Group %s", hg.Name), nil
 }
 
 type kindFrontMatter struct {

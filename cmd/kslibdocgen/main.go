@@ -13,7 +13,7 @@ func main() {
 	flag.Var(&groups, "groups", "Groups to render. If blank, it will render all groups")
 
 	var path string
-	flag.StringVar(&path, "path", "/Users/bryan/Development/heptio/ksonnet/ksonnet-playground/new-ctors/k8s.libsonnet", "Path to ksonnet")
+	flag.StringVar(&path, "path", "/Users/bryan/go/src/github.com/heptio/ksnx/tmp/k8s1.8.7/k8s.libsonnet", "Path to ksonnet")
 
 	var outPath string
 	flag.StringVar(&outPath, "outPath", "/Users/bryan/go/src/github.com/bryanl/woowoo/k8sdocs", "Output path")
