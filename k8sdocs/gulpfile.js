@@ -3,6 +3,7 @@ var sass = require("gulp-sass");
 var autoprefixer = require("gulp-autoprefixer");
 var hash = require("gulp-hash");
 var del = require("del");
+var babel = require("gulp-babel");
 
 // Compile SCSS files to CSS
 gulp.task("scss", function () {
@@ -36,6 +37,7 @@ gulp.task("images", function () {
 gulp.task("js", function () {
     del(["static/js/**/*"]);
     gulp.src("src/js/**/*")
+        .pipe(babel({ignore: 'gulpfile.js'}))
         .pipe(hash())
         .pipe(gulp.dest("static/js"))
         .pipe(hash.manifest("hash.json"))

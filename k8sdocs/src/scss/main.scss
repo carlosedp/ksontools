@@ -4,7 +4,23 @@
     @return map-get($grays, $key);
 }
 
-@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+@import url('https://fonts.googleapis.com/css?family=Raleway');
+
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Raleway', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    color: inherit;
+    font-family: "Raleway", "Open Sans", "sans-serif";
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+.kind-summary {
+    display: none;
+
+    &.default {
+        display: inline;
+    }
 }

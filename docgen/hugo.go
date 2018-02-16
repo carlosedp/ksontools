@@ -7,13 +7,21 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/bryanl/woowoo/docgen/template"
+	"github.com/gobuffalo/plush"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+var (
+	reFirstSentence = regexp.MustCompile(`^.*?[\.](?:\s|$)`)
 )
 
 type hugo struct {
@@ -97,7 +105,11 @@ func (h *hugo) writeDoc(category []string, name string, fm frontMatterer) error 
 	}
 
 	buf.WriteString("\n")
-	buf.WriteString(fm.Content())
+	content, err := fm.Content()
+	if err != nil {
+		return err
+	}
+	buf.WriteString(content)
 
 	path := h.makePath(append(parentPath, fm.Filename())...)
 	return ioutil.WriteFile(path, buf.Bytes(), 0644)
@@ -176,7 +188,7 @@ func (hp *hugoProperty) Filename() string {
 	return hp.name() + ".md"
 }
 
-func (hp *hugoProperty) Content() string {
+func (hp *hugoProperty) Content() (string, error) {
 	var buf bytes.Buffer
 	content := fmt.Sprintf("%s/%s/%s - %s",
 		hp.group, hp.version, hp.kind, strings.Join(hp.property, "."))
@@ -199,7 +211,7 @@ func (hp *hugoProperty) Content() string {
 		buf.WriteString("</div>")
 	}
 
-	return buf.String()
+	return buf.String(), nil
 }
 
 type versionedKindFrontMatter struct {
@@ -244,8 +256,8 @@ func (hvk *hugoVersionedKind) Filename() string {
 	return hvk.kind + ".md"
 }
 
-func (hvk *hugoVersionedKind) Content() string {
-	return hvk.comment
+func (hvk *hugoVersionedKind) Content() (string, error) {
+	return hvk.comment, nil
 	// return fmt.Sprintf("placeholder %s/%s/%s", hvk.group, hvk.version, hvk.kind)
 }
 
@@ -283,8 +295,8 @@ func (hg *hugoGroup) Filename() string {
 	return hg.Name + ".md"
 }
 
-func (hg *hugoGroup) Content() string {
-	return fmt.Sprintf("placeholder for group %s", hg.Name)
+func (hg *hugoGroup) Content() (string, error) {
+	return fmt.Sprintf("placeholder for group %s", hg.Name), nil
 }
 
 type kindFrontMatter struct {
@@ -297,20 +309,22 @@ type kindFrontMatter struct {
 }
 
 type hugoKind struct {
-	Title    string
-	group    string
-	Name     string
-	Versions []string
+	Title        string
+	group        string
+	Name         string
+	Versions     []string
+	descriptions map[string]string
 }
 
 var _ frontMatterer = (*hugoKind)(nil)
 
-func newKindFrontMatter(group, name string, versions []string) *hugoKind {
+func newKindFrontMatter(group, name string, versions []string, descriptions map[string]string) *hugoKind {
 	return &hugoKind{
-		Title:    name,
-		group:    group,
-		Name:     name,
-		Versions: versions,
+		Title:        name,
+		group:        group,
+		Name:         name,
+		Versions:     versions,
+		descriptions: descriptions,
 	}
 }
 
@@ -320,13 +334,37 @@ func (hk *hugoKind) FrontMatter() interface{} {
 		Date:        time.Now().UTC(),
 		Draft:       false,
 		KindName:    hk.Name,
-		Versions:    sortVersions(hk.Versions),
+		Versions:    hk.Versions,
 		ParentGroup: hk.group,
 	}
 }
 
-func (hk *hugoKind) Content() string {
-	return "kind placeholder"
+func (hk *hugoKind) Content() (string, error) {
+	return kindSummary(hk.group, hk.Name, hk.Versions, hk.descriptions)
+}
+
+func kindSummary(group, kind string, versions []string, descriptions map[string]string) (string, error) {
+	var out []map[string]interface{}
+
+	for i, v := range versions {
+		classes := []string{"kind-summary"}
+		if i == 0 {
+			classes = append(classes, "default")
+		}
+		m := map[string]interface{}{
+			"classes": classes,
+			"version": fmt.Sprintf("%s-%s-%s", group, v, kind),
+			"summary": summarize(descriptions[v]),
+		}
+		out = append(out, m)
+	}
+
+	ctx := plush.NewContext()
+	ctx.Set("classFor", template.ClassFor)
+	ctx.Set("versions", out)
+
+	return plush.Render(tmplKindSummary, ctx)
+
 }
 
 func (hk *hugoKind) Filename() string {
@@ -336,5 +374,22 @@ func (hk *hugoKind) Filename() string {
 type frontMatterer interface {
 	FrontMatter() interface{}
 	Filename() string
-	Content() string
+	Content() (string, error)
 }
+
+func summarize(s string) string {
+	out := reFirstSentence.FindAllString(strings.TrimSpace(s), 1)
+
+	if len(out) == 0 {
+		return ""
+	}
+
+	return out[0]
+}
+
+var tmplKindSummary = `<%= for (version) in versions { %>
+<div id="<%= version["version"] %>" class="<%= classFor(version["classes"]) %>">
+	<%= version["summary"] %>
+</div>
+<% } %>
+`

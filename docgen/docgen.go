@@ -17,13 +17,13 @@ var (
 )
 
 // Generate generates the docs
-func Generate(k8sLibPath, docsPath string) error {
+func Generate(k8sLibPath, docsPath string, groups ...string) error {
 	node, err := yaml2jsonnet.ImportJsonnet(k8sLibPath)
 	if err != nil {
 		return errors.Wrap(err, "parse and evaluate source")
 	}
 
-	dg, err := New(node, docsPath)
+	dg, err := New(node, docsPath, groups...)
 	if err != nil {
 		return errors.Wrap(err, "create Docgen")
 	}
@@ -64,10 +64,13 @@ type Docgen struct {
 
 	versionLookup    map[groupKind][]string
 	kindCommentCache *kindCommentCache
+
+	// If set, only render these groups
+	groups []string
 }
 
 // New creates an instance of Docgen.
-func New(node ast.Node, docsPath string) (*Docgen, error) {
+func New(node ast.Node, docsPath string, groups ...string) (*Docgen, error) {
 	h, err := newHugo(docsPath)
 	if err != nil {
 		return nil, err
@@ -78,6 +81,7 @@ func New(node ast.Node, docsPath string) (*Docgen, error) {
 		hugo:             h,
 		versionLookup:    make(map[groupKind][]string),
 		kindCommentCache: newKindCommentCache(),
+		groups:           groups,
 	}, nil
 }
 
@@ -88,6 +92,12 @@ func (dg *Docgen) Generate() error {
 }
 
 func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
+	if len(dg.groups) > 0 {
+		if !stringInSlice(name, dg.groups) {
+			return nil
+		}
+	}
+
 	fm := newGroupFrontMatter(name)
 
 	if err := dg.hugo.writeGroup(name, fm); err != nil {
@@ -104,18 +114,23 @@ func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
 	}
 
 	for gk, versions := range dg.versionLookup {
-		fm := newKindFrontMatter(gk.group, gk.kind, versions)
-
-		if err := dg.hugo.writeKind(gk.group, gk.kind, fm); err != nil {
-			return errors.Wrapf(err, "write kind %s/%s", gk.group, gk.kind)
-		}
+		descriptions := make(map[string]string)
 
 		for _, version := range versions {
 			comment := dg.kindCommentCache.get(gk.group, version, gk.kind)
 			if err := dg.hugo.writeVersionedKind(gk.group, version, gk.kind, comment); err != nil {
 				return errors.Wrapf(err, "write versioned kind %s/%s/%s", gk.group, version, gk.kind)
 			}
+
+			descriptions[version] = comment
 		}
+
+		fm := newKindFrontMatter(gk.group, gk.kind, sortVersions(versions), descriptions)
+
+		if err := dg.hugo.writeKind(gk.group, gk.kind, fm); err != nil {
+			return errors.Wrapf(err, "write kind %s/%s", gk.group, gk.kind)
+		}
+
 	}
 
 	return nil
@@ -285,4 +300,14 @@ func sortVersions(sl []string) []string {
 	}
 
 	return out
+}
+
+func stringInSlice(s string, sl []string) bool {
+	for i := range sl {
+		if s == sl[i] {
+			return true
+		}
+	}
+
+	return false
 }
