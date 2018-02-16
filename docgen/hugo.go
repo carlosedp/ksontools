@@ -68,9 +68,9 @@ func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
 	return h.writeDoc([]string{group}, kind, fm)
 }
 
-func (h *hugo) writeVersionedKind(group, version, kind string) error {
+func (h *hugo) writeVersionedKind(group, version, kind, comment string) error {
 	category := []string{group, version}
-	fm := newHugoVersionedKind(group, version, kind)
+	fm := newHugoVersionedKind(group, version, kind, comment)
 	return h.writeDoc(category, kind, fm)
 }
 
@@ -215,15 +215,17 @@ type hugoVersionedKind struct {
 	group   string
 	version string
 	kind    string
+	comment string
 }
 
 var _ frontMatterer = (*hugoVersionedKind)(nil)
 
-func newHugoVersionedKind(group, version, kind string) *hugoVersionedKind {
+func newHugoVersionedKind(group, version, kind, comment string) *hugoVersionedKind {
 	return &hugoVersionedKind{
 		group:   group,
 		version: version,
 		kind:    kind,
+		comment: comment,
 	}
 }
 
@@ -243,7 +245,8 @@ func (hvk *hugoVersionedKind) Filename() string {
 }
 
 func (hvk *hugoVersionedKind) Content() string {
-	return fmt.Sprintf("placeholder %s/%s/%s", hvk.group, hvk.version, hvk.kind)
+	return hvk.comment
+	// return fmt.Sprintf("placeholder %s/%s/%s", hvk.group, hvk.version, hvk.kind)
 }
 
 func newGroupFrontMatter(name string) *hugoGroup {

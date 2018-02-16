@@ -1,6 +1,7 @@
 package docgen
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 
@@ -31,8 +32,29 @@ func Generate(k8sLibPath, docsPath string) error {
 }
 
 type groupKind struct {
-	group string
-	kind  string
+	group   string
+	kind    string
+	comment string
+}
+
+type kindCommentCache struct {
+	cache map[string]string
+}
+
+func newKindCommentCache() *kindCommentCache {
+	return &kindCommentCache{
+		cache: make(map[string]string),
+	}
+}
+
+func (kcc *kindCommentCache) set(group, version, kind, comment string) {
+	key := fmt.Sprintf("%s-%s-%s", group, version, kind)
+	kcc.cache[key] = comment
+}
+
+func (kcc *kindCommentCache) get(group, version, kind string) string {
+	key := fmt.Sprintf("%s-%s-%s", group, version, kind)
+	return kcc.cache[key]
 }
 
 // Docgen is a documentation generator for k8s.
@@ -40,7 +62,8 @@ type Docgen struct {
 	node ast.Node
 	hugo *hugo
 
-	versionLookup map[groupKind][]string
+	versionLookup    map[groupKind][]string
+	kindCommentCache *kindCommentCache
 }
 
 // New creates an instance of Docgen.
@@ -51,9 +74,10 @@ func New(node ast.Node, docsPath string) (*Docgen, error) {
 	}
 
 	return &Docgen{
-		node:          node,
-		hugo:          h,
-		versionLookup: make(map[groupKind][]string),
+		node:             node,
+		hugo:             h,
+		versionLookup:    make(map[groupKind][]string),
+		kindCommentCache: newKindCommentCache(),
 	}, nil
 }
 
@@ -63,14 +87,14 @@ func (dg *Docgen) Generate() error {
 	return errors.Wrap(err, "iterate over groups")
 }
 
-func (dg *Docgen) generateGroup(name string, node ast.Node) error {
+func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
 	fm := newGroupFrontMatter(name)
 
 	if err := dg.hugo.writeGroup(name, fm); err != nil {
 		return errors.Wrap(err, "write group")
 	}
 
-	fn := func(version string, node ast.Node) error {
+	fn := func(version, _ string, node ast.Node) error {
 		return dg.generateVersion(name, version, node)
 	}
 
@@ -87,7 +111,8 @@ func (dg *Docgen) generateGroup(name string, node ast.Node) error {
 		}
 
 		for _, version := range versions {
-			if err := dg.hugo.writeVersionedKind(gk.group, version, gk.kind); err != nil {
+			comment := dg.kindCommentCache.get(gk.group, version, gk.kind)
+			if err := dg.hugo.writeVersionedKind(gk.group, version, gk.kind, comment); err != nil {
 				return errors.Wrapf(err, "write versioned kind %s/%s/%s", gk.group, version, gk.kind)
 			}
 		}
@@ -97,8 +122,9 @@ func (dg *Docgen) generateGroup(name string, node ast.Node) error {
 }
 
 func (dg *Docgen) generateVersion(group, version string, node ast.Node) error {
-	fn := func(name string, node ast.Node) error {
-		return dg.generateKind(group, version, name, node)
+	fn := func(name, comment string, node ast.Node) error {
+		dg.kindCommentCache.set(group, version, name, comment)
+		return dg.generateKind(group, version, name, comment, node)
 	}
 
 	if err := iterateObject(node, fn); err != nil {
@@ -108,7 +134,7 @@ func (dg *Docgen) generateVersion(group, version string, node ast.Node) error {
 	return nil
 }
 
-func (dg *Docgen) generateKind(group, version, kind string, node ast.Node) error {
+func (dg *Docgen) generateKind(group, version, kind, comment string, node ast.Node) error {
 	if kind == "apiVersion" {
 		return nil
 	}
@@ -184,7 +210,9 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	return nil
 }
 
-func iterateObject(node ast.Node, fn func(string, ast.Node) error) error {
+type iterateObjectFn func(string, string, ast.Node) error
+
+func iterateObject(node ast.Node, fn iterateObjectFn) error {
 	if node == nil {
 		return errors.New("node was nil")
 	}
@@ -208,7 +236,12 @@ func iterateObject(node ast.Node, fn func(string, ast.Node) error) error {
 			continue
 		}
 
-		if err := fn(id, of.Expr2); err != nil {
+		var comment string
+		if of.Comment != nil {
+			comment = of.Comment.Text
+		}
+
+		if err := fn(id, comment, of.Expr2); err != nil {
 			return err
 		}
 	}
