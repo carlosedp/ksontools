@@ -6,6 +6,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 
 	"github.com/go-yaml/yaml"
@@ -16,13 +18,13 @@ import (
 type Document struct {
 	Properties Properties
 	GVK        GVK
-	root       *ast.Object
+	root       *astext.Object
 }
 
 func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
-	obj, ok := root.(*ast.Object)
+	obj, ok := root.(*astext.Object)
 	if !ok {
-		return nil, errors.New("root is not an *ast.Objedct")
+		return nil, errors.New("root is not an *ast.Object")
 	}
 
 	doc := &Document{
@@ -83,6 +85,7 @@ func (d *Document) Generate() (string, error) {
 
 	locals := NewLocals(d.GVK.Kind)
 
+	spew.Dump(d.GVK)
 	paths := d.Properties.Paths(d.GVK)
 	for _, path := range paths {
 		sr, realPath, err := nn.Search(path.Path...)

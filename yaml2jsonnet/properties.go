@@ -8,6 +8,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// TODO: need something in ksonnet lib to look this up
+	groupLookup = map[string]string{
+		"rbac.authorization.k8s.io": "rbac",
+	}
+)
+
 // PropertyPath contains a property path.
 type PropertyPath struct {
 	Path  []string
@@ -22,7 +29,12 @@ func (p Properties) Paths(gvk GVK) []PropertyPath {
 	ch := make(chan PropertyPath)
 
 	go func() {
-		base := []string{gvk.Group, gvk.Version, gvk.Kind}
+		g, ok := groupLookup[gvk.Group]
+		if !ok {
+			g = gvk.Group
+		}
+
+		base := []string{g, gvk.Version, gvk.Kind}
 		iterateMap(ch, base, p)
 		close(ch)
 	}()

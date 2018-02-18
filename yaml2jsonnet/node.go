@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
 
@@ -13,8 +14,8 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-func FindNode(node ast.Node, name string) (*ast.Object, error) {
-	root, ok := node.(*ast.Object)
+func FindNode(node ast.Node, name string) (*astext.Object, error) {
+	root, ok := node.(*astext.Object)
 	if !ok {
 		return nil, errors.New("node is not an object")
 	}
@@ -30,7 +31,7 @@ func FindNode(node ast.Node, name string) (*ast.Object, error) {
 				return nil, errors.New("child object was nil")
 			}
 
-			child, ok := of.Expr2.(*ast.Object)
+			child, ok := of.Expr2.(*astext.Object)
 			if !ok {
 				return nil, errors.New("child was not an Object")
 			}
@@ -44,11 +45,11 @@ func FindNode(node ast.Node, name string) (*ast.Object, error) {
 
 type Node struct {
 	name    string
-	obj     *ast.Object
+	obj     *astext.Object
 	IsMixin bool
 }
 
-func NewNode(name string, obj *ast.Object) *Node {
+func NewNode(name string, obj *astext.Object) *Node {
 	return &Node{
 		name: name,
 		obj:  obj,
@@ -68,7 +69,7 @@ func (n *Node) Search(path ...string) (SearchResult, []string, error) {
 	return searchObj(n.obj, path...)
 }
 
-func searchObj(obj *ast.Object, path ...string) (SearchResult, []string, error) {
+func searchObj(obj *astext.Object, path ...string) (SearchResult, []string, error) {
 	om, err := objMembers(obj)
 	if err != nil {
 		return SearchResult{}, nil, err
@@ -141,7 +142,7 @@ func (om *objMember) findFunction(name string) (string, error) {
 	return "", errors.Errorf("could not find function %s", name)
 }
 
-func objMembers(obj *ast.Object) (objMember, error) {
+func objMembers(obj *astext.Object) (objMember, error) {
 	if obj == nil {
 		return objMember{}, errors.New("object is nil")
 	}
