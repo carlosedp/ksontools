@@ -1,0 +1,33 @@
+FROM golang:1.9-stretch AS builder
+
+ENV DEP_VER 0.4.1
+ENV HUGO_VERSION 0.36.1
+ENV HUGO_BINARY hugo_${HUGO_VERSION}_Linux-64bit.deb
+ENV SWAGGER_URL https://raw.githubusercontent.com/kubernetes/kubernetes/v1.8.7/api/openapi-spec/swagger.json
+
+ADD https://github.com/spf13/hugo/releases/download/v${HUGO_VERSION}/${HUGO_BINARY} /tmp/hugo.deb
+ADD https://github.com/golang/dep/releases/download/v${DEP_VER}/dep-linux-amd64 /bin/dep
+
+RUN dpkg -i /tmp/hugo.deb && \
+    rm /tmp/hugo.deb && \
+    mkdir -p /go/src/github.com/bryanl/woowoo && \
+    chmod +x /bin/dep
+
+WORKDIR /go/src/github.com/bryanl/woowoo
+COPY . .
+
+RUN dep ensure -vendor-only && \
+    go get github.com/bryanl/ksgen && \
+    ksgen -url ${SWAGGER_URL} -k /tmp/k.libsonnet -k8s /tmp/k8s.libsonnet && \
+    go install github.com/bryanl/woowoo/cmd/kslibdocgen && \
+    kslibdocgen -path /tmp/k8s.libsonnet -outPath /go/src/github.com/bryanl/woowoo/k8sdocs
+
+WORKDIR /go/src/github.com/bryanl/woowoo/k8sdocs
+
+# RUN hugo
+
+FROM nginx:1.13
+LABEL MAINTAINER="bryan@heptio.com"
+
+# COPY --from=builder /go/src/github.com/bryanl/woowoo/k8sdocs/public /usr/share/nginx/html
+WORKDIR /usr/share/nginx/html
