@@ -8,24 +8,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	libRoot = "/tmp/k8s.libsonnet"
-)
-
 func main() {
-
 	var source string
 	flag.StringVar(&source, "source", "", "Kubernetes manifest")
 
 	var verbose bool
 	flag.BoolVar(&verbose, "version", true, "Verbose mode")
+
+	var k8slib string
+	flag.StringVar(&k8slib, "k8slib", "k8s.libsonnet", "Path to k8s.libsonnet")
+
 	flag.Parse()
 
 	if !verbose {
 		logrus.SetOutput(ioutil.Discard)
 	}
 
-	conversion, err := yaml2jsonnet.NewConversion(source, libRoot)
+	conversion, err := yaml2jsonnet.NewConversion(source, k8slib)
 	if err != nil {
 		logrus.WithError(err).Fatal("initialize conversion")
 	}
