@@ -7,11 +7,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// TODO: might need something in ksonnet lib to look this up
+	groupMappings = map[string][]string{
+		"apiextensions.k8s.io":      []string{"hidden", "apiextensions"},
+		"rbac.authorization.k8s.io": []string{"rbac"},
+	}
+)
+
 // GVK is a group, version, kind descriptor.
 type GVK struct {
-	Group   []string
-	Version string
-	Kind    string
+	GroupPath []string
+	Version   string
+	Kind      string
+}
+
+func (gvk *GVK) Group() []string {
+	g, ok := groupMappings[gvk.GroupPath[0]]
+	if !ok {
+		return gvk.GroupPath
+	}
+
+	return g
 }
 
 // TypeSpec describes an object's type.
@@ -43,7 +60,7 @@ func (ts TypeSpec) GVK() (GVK, error) {
 		return GVK{}, err
 	}
 
-	return GVK{Group: group, Version: version, Kind: kind}, nil
+	return GVK{GroupPath: group, Version: version, Kind: kind}, nil
 }
 
 // Group is the group as defined by the TypeSpec.

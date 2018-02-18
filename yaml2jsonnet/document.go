@@ -14,12 +14,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Document creates a ksonnet document for describing a resource.
 type Document struct {
 	Properties Properties
 	GVK        GVK
 	root       *astext.Object
 }
 
+// NewDocument creates an instance of Document.
 func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 	obj, ok := root.(*astext.Object)
 	if !ok {
@@ -66,10 +68,15 @@ func importYaml(r io.Reader, props Properties) (TypeSpec, error) {
 	return ts, nil
 }
 
+// Selector is the selector for the resource this document represents.
 func (d *Document) Selector() string {
-	return fmt.Sprintf("k.%s.%s.%s", d.GVK.Group, d.GVK.Version, d.GVK.Kind)
+	g := d.GVK.Group()
+
+	path := append(g, d.GVK.Version, d.GVK.Kind)
+	return fmt.Sprintf("k.%s", strings.Join(path, "."))
 }
 
+// Generate generates the document.
 func (d *Document) Generate() (string, error) {
 	selector := d.Selector()
 	comp := NewComponent()

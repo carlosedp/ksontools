@@ -9,14 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// TODO: need something in ksonnet lib to look this up
-	groupLookup = map[string][]string{
-		"apiextensions.k8s.io":      []string{"hidden", "apiextensions"},
-		"rbac.authorization.k8s.io": []string{"hidden", "rbac"},
-	}
-)
-
 // PropertyPath contains a property path.
 type PropertyPath struct {
 	Path  []string
@@ -31,10 +23,7 @@ func (p Properties) Paths(gvk GVK) []PropertyPath {
 	ch := make(chan PropertyPath)
 
 	go func() {
-		g, ok := groupLookup[gvk.Group[0]]
-		if !ok {
-			g = gvk.Group
-		}
+		g := gvk.Group()
 
 		base := append(g, gvk.Version, gvk.Kind)
 		iterateMap(ch, base, p)
