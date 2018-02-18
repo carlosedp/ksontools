@@ -14,6 +14,7 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
+// FindNode finds a node by name in a parent node.
 func FindNode(node ast.Node, name string) (*astext.Object, error) {
 	root, ok := node.(*astext.Object)
 	if !ok {
@@ -43,12 +44,14 @@ func FindNode(node ast.Node, name string) (*astext.Object, error) {
 	return nil, errors.Errorf("could not find %s", name)
 }
 
+// Node represents a node by name.
 type Node struct {
 	name    string
 	obj     *astext.Object
 	IsMixin bool
 }
 
+// NewNode creates an instance of Node.
 func NewNode(name string, obj *astext.Object) *Node {
 	return &Node{
 		name: name,
@@ -56,23 +59,27 @@ func NewNode(name string, obj *astext.Object) *Node {
 	}
 }
 
+// SearchResult is the results from a Search.
 type SearchResult struct {
 	Fields    []string
 	Functions []string
 	Types     []string
 
+	MatchedPath []string
+
 	Setter string
 	Value  interface{}
 }
 
-func (n *Node) Search(path ...string) (SearchResult, []string, error) {
+// Search searches for nodes given a path.
+func (n *Node) Search(path ...string) (SearchResult, error) {
 	return searchObj(n.obj, path...)
 }
 
-func searchObj(obj *astext.Object, path ...string) (SearchResult, []string, error) {
+func searchObj(obj *astext.Object, path ...string) (SearchResult, error) {
 	om, err := objMembers(obj)
 	if err != nil {
-		return SearchResult{}, nil, err
+		return SearchResult{}, err
 	}
 
 	if len(path) == 0 {
@@ -80,7 +87,7 @@ func searchObj(obj *astext.Object, path ...string) (SearchResult, []string, erro
 			Fields:    om.fields,
 			Functions: om.functions,
 			Types:     om.types,
-		}, nil, nil
+		}, nil
 	}
 
 	cur, err := FindNode(obj, path[0])
@@ -89,21 +96,26 @@ func searchObj(obj *astext.Object, path ...string) (SearchResult, []string, erro
 		cur, err = FindNode(obj, path[0])
 		if err != nil {
 			// is there a function which matches this?
-			fn, err := om.findFunction(path[1])
-			if err != nil {
-				return SearchResult{}, nil, errors.New("node not found")
+			fn, ferr := om.findFunction(path[1])
+			if ferr != nil {
+				return SearchResult{}, errors.Errorf("node not found in path %s", strings.Join(path, "."))
 			}
 
-			return SearchResult{Setter: fn}, []string{path[1]}, nil
+			return SearchResult{
+				Setter:      fn,
+				MatchedPath: []string{path[1]},
+			}, nil
 		}
 	}
 
-	sr, mp, err := searchObj(cur, path[1:]...)
+	sr, err := searchObj(cur, path[1:]...)
 	if err != nil {
-		return SearchResult{}, nil, err
+		return SearchResult{}, err
 	}
 
-	return sr, append([]string{path[0]}, mp...), nil
+	sr.MatchedPath = append([]string{path[0]}, sr.MatchedPath...)
+
+	return sr, nil
 }
 
 type objMember struct {
@@ -161,7 +173,7 @@ func objMembers(obj *astext.Object) (objMember, error) {
 			continue
 		}
 
-		if _, ok := of.Expr2.(*ast.Object); ok && !strings.HasPrefix(id, "__") {
+		if _, ok := of.Expr2.(*astext.Object); ok && !strings.HasPrefix(id, "__") {
 			om.fields = append(om.fields, id)
 			continue
 		}
@@ -178,37 +190,6 @@ func objMembers(obj *astext.Object) (objMember, error) {
 var (
 	ignoredProps = []string{"mixin", "kind", "new", "mixinInstance"}
 )
-
-func (n *Node) Properties() ([]Property, error) {
-	if n.obj == nil {
-		return nil, errors.New("object is nil")
-	}
-
-	var props []Property
-	for _, of := range n.obj.Fields {
-		if of.Id == nil {
-			return nil, errors.New("property has nil identifier")
-		}
-
-		id := string(*of.Id)
-
-		if stringInSlice(id, ignoredProps) {
-			continue
-		}
-
-		if strings.HasSuffix(id, "Mixin") {
-			continue
-		}
-
-		// prop := Property{
-		// 	Node: NewNode(id, of.Expr2),
-		// }
-
-		// props = append(props, prop)
-	}
-
-	return props, nil
-}
 
 func (n *Node) FindFunction(p, name string) (string, error) {
 	var hasSetter, hasSetterMixin, hasType bool

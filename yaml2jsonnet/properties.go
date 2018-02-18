@@ -5,13 +5,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
 var (
 	// TODO: need something in ksonnet lib to look this up
-	groupLookup = map[string]string{
-		"rbac.authorization.k8s.io": "rbac",
+	groupLookup = map[string][]string{
+		"apiextensions.k8s.io":      []string{"hidden", "apiextensions"},
+		"rbac.authorization.k8s.io": []string{"hidden", "rbac"},
 	}
 )
 
@@ -29,12 +31,12 @@ func (p Properties) Paths(gvk GVK) []PropertyPath {
 	ch := make(chan PropertyPath)
 
 	go func() {
-		g, ok := groupLookup[gvk.Group]
+		g, ok := groupLookup[gvk.Group[0]]
 		if !ok {
 			g = gvk.Group
 		}
 
-		base := []string{g, gvk.Version, gvk.Kind}
+		base := append(g, gvk.Version, gvk.Kind)
 		iterateMap(ch, base, p)
 		close(ch)
 	}()
@@ -85,6 +87,10 @@ func (p Properties) Value(path []string) (interface{}, error) {
 }
 
 func valueSearch(path []string, m map[interface{}]interface{}) (interface{}, error) {
+	if len(path) > 0 && path[0] == "mixin" {
+		return valueSearch(path[1:], m)
+	}
+
 	var keys []interface{}
 	for k := range m {
 		keys = append(keys, k)
@@ -113,7 +119,10 @@ func valueSearch(path []string, m map[interface{}]interface{}) (interface{}, err
 				return t, nil
 			}
 		}
+
 	}
+
+	spew.Dump(m)
 
 	return nil, errors.Errorf("unable to find %s", strings.Join(path, "."))
 }

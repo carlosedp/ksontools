@@ -6,7 +6,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 
@@ -85,15 +84,14 @@ func (d *Document) Generate() (string, error) {
 
 	locals := NewLocals(d.GVK.Kind)
 
-	spew.Dump(d.GVK)
 	paths := d.Properties.Paths(d.GVK)
 	for _, path := range paths {
-		sr, realPath, err := nn.Search(path.Path...)
+		sr, err := nn.Search(path.Path...)
 		if err != nil {
 			return "", errors.Wrapf(err, "search path %s", strings.Join(path.Path, "."))
 		}
 
-		manifestPath := realPath[4:]
+		manifestPath := sr.MatchedPath[4:]
 		var paramName bytes.Buffer
 		for i := range manifestPath {
 			part := manifestPath[i]
@@ -113,7 +111,7 @@ func (d *Document) Generate() (string, error) {
 			return "", errors.Wrapf(err, "add param %s to component", paramName.String())
 		}
 
-		k := strings.Join(realPath[:len(realPath)-1], ".")
+		k := strings.Join(sr.MatchedPath[:len(sr.MatchedPath)-1], ".")
 		entry := LocalEntry{
 			Path:      k,
 			Setter:    sr.Setter,

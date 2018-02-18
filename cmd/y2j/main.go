@@ -10,7 +10,7 @@ import (
 
 func main() {
 	var verbose bool
-	flag.BoolVar(&verbose, "version", true, "Verbose mode")
+	flag.BoolVar(&verbose, "verbose", true, "Verbose mode")
 
 	var k8slib string
 	flag.StringVar(&k8slib, "k8slib", "k8s.libsonnet", "Path to k8s.libsonnet")

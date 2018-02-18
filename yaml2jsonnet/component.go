@@ -89,6 +89,7 @@ type Component struct {
 	params       *nodemaker.Object
 }
 
+// NewComponent creates an instance of Component.
 func NewComponent() *Component {
 	return &Component{
 		declarations: make([]Declaration, 0),
@@ -96,6 +97,7 @@ func NewComponent() *Component {
 	}
 }
 
+// AddDeclaration adds a declaration to a Component.
 func (c *Component) AddDeclaration(d Declaration) {
 	c.declarations = append(c.declarations, d)
 }
@@ -167,6 +169,7 @@ func (c *Component) Generate(obj ast.Node) (string, error) {
 	return buf.String(), nil
 }
 
+// AddParam adds a parameter to the component.
 func (c *Component) AddParam(name string, value interface{}) error {
 	return addParam(c.params, name, value)
 }
