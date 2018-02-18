@@ -9,9 +9,6 @@ import (
 )
 
 func main() {
-	var source string
-	flag.StringVar(&source, "source", "", "Kubernetes manifest")
-
 	var verbose bool
 	flag.BoolVar(&verbose, "version", true, "Verbose mode")
 
@@ -23,6 +20,12 @@ func main() {
 	if !verbose {
 		logrus.SetOutput(ioutil.Discard)
 	}
+
+	if flag.NArg() != 1 {
+		logrus.Fatal("must supply source")
+	}
+
+	source := flag.Arg(0)
 
 	conversion, err := yaml2jsonnet.NewConversion(source, k8slib)
 	if err != nil {
