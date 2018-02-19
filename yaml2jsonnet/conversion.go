@@ -17,11 +17,13 @@ const (
 	docSeparator = "---"
 )
 
+// Conversion converts YAML to ksonnet.
 type Conversion struct {
 	RootNode ast.Node
 	Sources  []io.Reader
 }
 
+// NewConversion creates a Conversion.
 func NewConversion(source, k8sLib string) (*Conversion, error) {
 	node, err := ImportJsonnet(k8sLib)
 	if err != nil {
@@ -41,6 +43,7 @@ func NewConversion(source, k8sLib string) (*Conversion, error) {
 	return c, nil
 }
 
+// Process processes the documents supplied.
 func (c *Conversion) Process() error {
 	for _, r := range c.Sources {
 		doc, err := NewDocument(r, c.RootNode)
@@ -48,7 +51,12 @@ func (c *Conversion) Process() error {
 			return errors.Wrap(err, "parse document")
 		}
 
-		s, err := doc.Generate()
+		// s, err := doc.Generate()
+		// if err != nil {
+		// 	return errors.Wrap(err, "generate libsonnet")
+		// }
+
+		s, err := doc.GenerateComponent()
 		if err != nil {
 			return errors.Wrap(err, "generate libsonnet")
 		}
@@ -59,6 +67,7 @@ func (c *Conversion) Process() error {
 	return nil
 }
 
+// ImportJsonnet imports jsonnet from a path.
 func ImportJsonnet(fileName string) (ast.Node, error) {
 	if fileName == "" {
 		return nil, errors.New("filename was blank")

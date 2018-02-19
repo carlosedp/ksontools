@@ -2,6 +2,7 @@ package yaml2jsonnet
 
 import (
 	"bytes"
+	"sort"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
@@ -199,13 +200,17 @@ func addParam(parent *nodemaker.Object, name string, value interface{}) error {
 		parent.Set(keyName, nodemaker.NewArray(nodes))
 	case map[interface{}]interface{}:
 		o := nodemaker.NewObject()
+		var keys []string
 		for k := range t {
-			n, ok := k.(string)
+			s, ok := k.(string)
 			if !ok {
 				return errors.Errorf("object key is not string (%T)", k)
 			}
-
-			if err := addParam(o, n, t[k]); err != nil {
+			keys = append(keys, s)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			if err := addParam(o, k, t[k]); err != nil {
 				return errors.Wrap(err, "add child key")
 			}
 		}

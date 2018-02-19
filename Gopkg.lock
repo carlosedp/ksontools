@@ -108,7 +108,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "functions-objects-should-be-oneline"
+  branch = "y2j-format"
   name = "github.com/ksonnet/ksonnet-lib"
   packages = [
     "ksonnet-gen/astext",
@@ -119,7 +119,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "3d3a6198440f118b061e320e4870da19b4ea2fee"
+  revision = "91bd224489113c314bf4d491a7d037a89bb0ebbc"
   source = "github.com/bryanl/ksonnet-lib"
 
 [[projects]]
@@ -340,6 +340,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c1b9687aa8dab399407fe08ae9bfa10919c1a911c752bc3c3184d5dcf2e5e4d2"
+  inputs-digest = "c3ddbc5f1f573ef3b78add105521bc2ac558f681d14178bef069e720ee9df3ac"
   solver-name = "gps-cdcl"
   solver-version = 1

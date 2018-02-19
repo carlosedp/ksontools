@@ -18,6 +18,44 @@ type PropertyPath struct {
 // Properties are document properties
 type Properties map[interface{}]interface{}
 
+// Name extract name or generateName from metadata. If either are not found,
+// it returns an error.
+func (p Properties) Name() (string, error) {
+	i, ok := p["metadata"]
+	if !ok {
+		return "", errors.New("properties does not have metadata")
+	}
+
+	metadata, ok := i.(map[interface{}]interface{})
+	if !ok {
+		return "", errors.New("metadata is not an object")
+	}
+
+	v, ok := metadata["name"]
+	if ok {
+		name, ok := v.(string)
+		if !ok {
+			return "", errors.New("name was not a string")
+		}
+		return sanitizeName(name), nil
+	}
+
+	v, ok = metadata["generateName"]
+	if ok {
+		generateName, ok := v.(string)
+		if !ok {
+			return "", errors.New("generateName was not a string")
+		}
+		return sanitizeName(string(generateName)), nil
+	}
+
+	return "", errors.New("could not find name or generateName in properties")
+}
+
+func sanitizeName(in string) string {
+	return strings.Replace(in, ".", "_", -1)
+}
+
 // Paths returns a list of paths in properties.
 func (p Properties) Paths(gvk GVK) []PropertyPath {
 	ch := make(chan PropertyPath)
@@ -56,16 +94,25 @@ func iterateMap(ch chan PropertyPath, base []string, m map[interface{}]interface
 
 	for i := range keys {
 		name := keys[i].(string)
+
+		// if v, ok := m[name].(map[interface{}]interface{}) {
+		// 	newBase := append(localBase, name)
+		// 	iterateMap(ch, newBase, v)
+		// 	continue
+		// }
+
+		// ch <- PropertyPath{
+		// 	Path: append(localBase, name)
+		// }
+
 		switch t := m[name].(type) {
 		default:
-			panic(fmt.Sprintf("not sure what to do with %T", t))
+			ch <- PropertyPath{
+				Path: append(localBase, name),
+			}
 		case map[interface{}]interface{}:
 			newBase := append(localBase, name)
 			iterateMap(ch, newBase, t)
-		case string, int, []interface{}:
-			ch <- PropertyPath{
-				Path: append(base, name),
-			}
 		}
 	}
 }

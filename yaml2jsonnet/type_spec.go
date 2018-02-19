@@ -37,7 +37,7 @@ type TypeSpec map[string]string
 // Validate validates the TypeSpec.
 func (ts TypeSpec) Validate() error {
 	if ts["kind"] == "" || ts["apiVersion"] == "" {
-		return errors.Errorf("document doesn't describe a resource: %#v", ts)
+		return errors.Errorf("document doesn't describe a kubernetes object: %#v", ts)
 	}
 
 	return nil

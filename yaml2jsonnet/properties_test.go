@@ -8,29 +8,61 @@ import (
 )
 
 func TestProperties_Paths(t *testing.T) {
-	f, err := os.Open("testdata/deployment.yaml")
-	require.NoError(t, err)
-	defer f.Close()
 
-	props := Properties{}
+	var (
+		deploymentBase = []string{"apps", "v1beta2", "deployment"}
+		crdBase        = []string{"hidden", "apiextensions", "v1beta1", "customResourceDefinition"}
+	)
 
-	ts, err := importYaml(f, props)
-	require.NoError(t, err)
-
-	gvk, err := ts.GVK()
-	require.NoError(t, err)
-
-	expected := []PropertyPath{
-		{Path: []string{"apps", "v1beta2", "deployment", "metadata", "labels", "app"}},
-		{Path: []string{"apps", "v1beta2", "deployment", "metadata", "name"}},
-		{Path: []string{"apps", "v1beta2", "deployment", "spec", "replicas"}},
-		{Path: []string{"apps", "v1beta2", "deployment", "spec", "selector", "matchLabels", "app"}},
-		{Path: []string{"apps", "v1beta2", "deployment", "spec", "template", "metadata", "labels", "app"}},
-		{Path: []string{"apps", "v1beta2", "deployment", "spec", "template", "spec", "containers"}},
+	cases := []struct {
+		name     string
+		expected []PropertyPath
+	}{
+		{
+			name: "testdata/deployment.yaml",
+			expected: []PropertyPath{
+				{Path: append(deploymentBase, "metadata", "labels", "app")},
+				{Path: append(deploymentBase, "metadata", "name")},
+				{Path: append(deploymentBase, "spec", "replicas")},
+				{Path: append(deploymentBase, "spec", "selector", "matchLabels", "app")},
+				{Path: append(deploymentBase, "spec", "template", "metadata", "labels", "app")},
+				{Path: append(deploymentBase, "spec", "template", "spec", "containers")},
+			},
+		},
+		{
+			name: "testdata/certificate-crd.yaml",
+			expected: []PropertyPath{
+				{Path: append(crdBase, "metadata", "labels", "app")},
+				{Path: append(crdBase, "metadata", "labels", "chart")},
+				{Path: append(crdBase, "metadata", "labels", "heritage")},
+				{Path: append(crdBase, "metadata", "labels", "release")},
+				{Path: append(crdBase, "metadata", "name")},
+				{Path: append(crdBase, "spec", "group")},
+				{Path: append(crdBase, "spec", "names", "kind")},
+				{Path: append(crdBase, "spec", "names", "plural")},
+				{Path: append(crdBase, "spec", "scope")},
+				{Path: append(crdBase, "spec", "version")},
+			},
+		},
 	}
 
-	got := props.Paths(gvk)
-	require.Equal(t, expected, got)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := os.Open(tc.name)
+			require.NoError(t, err)
+			defer f.Close()
+
+			ts, props, err := importYaml(f)
+			require.NoError(t, err)
+
+			gvk, err := ts.GVK()
+			require.NoError(t, err)
+
+			got := props.Paths(gvk)
+			require.Equal(t, tc.expected, got)
+		})
+	}
+
 }
 
 func TestProperties_Value(t *testing.T) {
@@ -40,7 +72,7 @@ func TestProperties_Value(t *testing.T) {
 
 	props := Properties{}
 
-	_, err = importYaml(f, props)
+	_, props, err = importYaml(f)
 	require.NoError(t, err)
 
 	cases := []struct {

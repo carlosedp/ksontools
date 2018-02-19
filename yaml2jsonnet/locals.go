@@ -11,6 +11,7 @@ type LocalEntry struct {
 	Path      string
 	Setter    string
 	ParamName string
+	Arguments []string
 }
 
 // Locals are local definitions for jsonnet.
