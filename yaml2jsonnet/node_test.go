@@ -3,7 +3,6 @@ package yaml2jsonnet
 import (
 	"testing"
 
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,11 +70,8 @@ func TestNode_Search2(t *testing.T) {
 		},
 	}
 
-	astNode, err := ImportJsonnet("testdata/k8s.libsonnet")
+	obj, err := ImportJsonnet("testdata/k8s.libsonnet")
 	require.NoError(t, err)
-
-	obj, ok := astNode.(*astext.Object)
-	require.True(t, ok)
 
 	node := NewNode("root", obj)
 
@@ -186,11 +182,8 @@ func TestNode_Search(t *testing.T) {
 		},
 	}
 
-	astNode, err := ImportJsonnet("testdata/k8s.libsonnet")
+	obj, err := ImportJsonnet("testdata/k8s.libsonnet")
 	require.NoError(t, err)
-
-	obj, ok := astNode.(*astext.Object)
-	require.True(t, ok)
 
 	node := NewNode("root", obj)
 

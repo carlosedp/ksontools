@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/bryanl/woowoo/node"
 	"github.com/bryanl/woowoo/pkg/docparser"
 	"github.com/google/go-jsonnet/ast"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
 
@@ -25,10 +27,12 @@ type Conversion struct {
 
 // NewConversion creates a Conversion.
 func NewConversion(source, k8sLib string) (*Conversion, error) {
-	node, err := ImportJsonnet(k8sLib)
+	root, err := ImportJsonnet(k8sLib)
 	if err != nil {
 		return nil, errors.Wrap(err, "read ksonnet lib")
 	}
+
+	node.FindMembers(root)
 
 	readers, err := importSource(source)
 	if err != nil {
@@ -36,7 +40,7 @@ func NewConversion(source, k8sLib string) (*Conversion, error) {
 	}
 
 	c := &Conversion{
-		RootNode: node,
+		RootNode: root,
 		Sources:  readers,
 	}
 
@@ -68,7 +72,7 @@ func (c *Conversion) Process() error {
 }
 
 // ImportJsonnet imports jsonnet from a path.
-func ImportJsonnet(fileName string) (ast.Node, error) {
+func ImportJsonnet(fileName string) (*astext.Object, error) {
 	if fileName == "" {
 		return nil, errors.New("filename was blank")
 	}
@@ -88,7 +92,12 @@ func ImportJsonnet(fileName string) (ast.Node, error) {
 		return nil, errors.Wrap(err, "parse lib")
 	}
 
-	return node, nil
+	root, ok := node.(*astext.Object)
+	if !ok {
+		return nil, errors.New("root was not an object")
+	}
+
+	return root, nil
 }
 
 func importSource(source string) ([]io.Reader, error) {

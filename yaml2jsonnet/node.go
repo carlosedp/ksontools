@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-jsonnet/ast"
+	"github.com/bryanl/woowoo/node"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -14,36 +14,6 @@ var (
 	// ErrNotFound is a not found error.
 	ErrNotFound = errors.New("not found")
 )
-
-// FindNode finds a node by name in a parent node.
-func FindNode(node ast.Node, name string) (*astext.Object, error) {
-	root, ok := node.(*astext.Object)
-	if !ok {
-		return nil, errors.New("node is not an object")
-	}
-
-	for _, of := range root.Fields {
-		if of.Id == nil {
-			continue
-		}
-
-		id := string(*of.Id)
-		if id == name {
-			if of.Expr2 == nil {
-				return nil, errors.New("child object was nil")
-			}
-
-			child, ok := of.Expr2.(*astext.Object)
-			if !ok {
-				return nil, errors.New("child was not an Object")
-			}
-
-			return child, nil
-		}
-	}
-
-	return nil, errors.Errorf("could not find %s", name)
-}
 
 // Node represents a node by name.
 type Node struct {
@@ -112,20 +82,20 @@ func (n *Node) searchNode(obj *astext.Object, sp searchPath, breadcrumbs []strin
 		return nil, nil, errors.New("search path is empty")
 	}
 
-	members, err := objMembers(obj)
+	members, err := node.FindMembers(obj)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "unable list object members")
 	}
 
 	if sp.len() == 1 {
 		switch {
-		case stringInSlice(sp.head(), members.fields):
+		case stringInSlice(sp.head(), members.Fields):
 			path := append(breadcrumbs, sp.head())
 			return &Item{Type: ItemTypeObject, Path: path}, nil, nil
-		case stringInSlice("mixin", members.fields):
+		case stringInSlice("mixin", members.Fields):
 			return n.findChild(obj, sp, "mixin", breadcrumbs)
 		default:
-			fnName, err := members.findFunction(sp.head())
+			fnName, err := members.FindFunction(sp.head())
 			if err != nil {
 				return nil, nil, errors.Wrapf(err, "unable to find function %s", sp)
 			}
@@ -137,9 +107,9 @@ func (n *Node) searchNode(obj *astext.Object, sp searchPath, breadcrumbs []strin
 	}
 
 	switch {
-	case stringInSlice(sp.head(), members.fields):
+	case stringInSlice(sp.head(), members.Fields):
 		return n.findChild(obj, sp.descendant(), sp.head(), breadcrumbs)
-	case stringInSlice("mixin", members.fields):
+	case stringInSlice("mixin", members.Fields):
 		return n.findChild(obj, sp, "mixin", breadcrumbs)
 	}
 
@@ -152,7 +122,7 @@ var (
 
 func (n *Node) findChild(obj *astext.Object, sp searchPath, name string, breadcrumbs []string) (*Item, []string, error) {
 	childBreadcrumbs := append(breadcrumbs, name)
-	child, err := FindNode(obj, name)
+	child, err := node.Find(obj, name)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -177,26 +147,26 @@ func (n *Node) Search(path ...string) (SearchResult, error) {
 }
 
 func searchObj(obj *astext.Object, path ...string) (SearchResult, error) {
-	om, err := objMembers(obj)
+	om, err := node.FindMembers(obj)
 	if err != nil {
 		return SearchResult{}, err
 	}
 
 	if len(path) == 0 {
 		return SearchResult{
-			Fields:    om.fields,
-			Functions: om.functions,
-			Types:     om.types,
+			Fields:    om.Fields,
+			Functions: om.Functions,
+			Types:     om.Types,
 		}, nil
 	}
 
-	cur, err := FindNode(obj, path[0])
+	cur, err := node.Find(obj, path[0])
 	if err != nil {
 		path = append([]string{"mixin"}, path...)
-		cur, err = FindNode(obj, path[0])
+		cur, err = node.Find(obj, path[0])
 		if err != nil {
 			// is there a function which matches this?
-			fn, ferr := om.findFunction(path[1])
+			fn, ferr := om.FindFunction(path[1])
 			if ferr != nil {
 				return SearchResult{}, errors.Errorf("node not found in path %s", strings.Join(path, "."))
 			}
@@ -216,75 +186,6 @@ func searchObj(obj *astext.Object, path ...string) (SearchResult, error) {
 	sr.MatchedPath = append([]string{path[0]}, sr.MatchedPath...)
 
 	return sr, nil
-}
-
-type objMember struct {
-	fields    []string
-	functions []string
-	types     []string
-}
-
-func (om *objMember) findFunction(name string) (string, error) {
-	var hasSetter, hasSetterMixin, hasType bool
-
-	name2 := strings.Title(name)
-
-	for _, id := range om.functions {
-		if fn := fmt.Sprintf("with%s", name2); fn == id && stringInSlice(fn, om.functions) {
-			hasSetter = true
-		}
-		if fn := fmt.Sprintf("with%sMixin", name2); fn == id && stringInSlice(fn, om.functions) {
-			hasSetterMixin = true
-		}
-		if t := fmt.Sprintf("%sType", name); t == id && stringInSlice(t, om.types) {
-			hasType = true
-		}
-	}
-
-	if hasSetter && hasSetterMixin && hasType {
-		return fmt.Sprintf("with%s", name2), nil
-	} else if hasSetter && hasSetterMixin {
-		return fmt.Sprintf("with%s", name2), nil
-	} else if hasType {
-		return "", errors.New("what to do with mixins")
-	} else if hasSetter {
-		return fmt.Sprintf("with%s", name2), nil
-	}
-
-	return "", errors.Errorf("could not find function %s", name)
-}
-
-func objMembers(obj *astext.Object) (objMember, error) {
-	if obj == nil {
-		return objMember{}, errors.New("object is nil")
-	}
-
-	var om objMember
-
-	for _, of := range obj.Fields {
-		if of.Id == nil {
-			continue
-		}
-
-		id := string(*of.Id)
-
-		if of.Method != nil && !strings.HasPrefix(id, "__") && !strings.HasPrefix(id, "mixin") {
-			om.functions = append(om.functions, id)
-			continue
-		}
-
-		if _, ok := of.Expr2.(*astext.Object); ok && !strings.HasPrefix(id, "__") {
-			om.fields = append(om.fields, id)
-			continue
-		}
-
-		if strings.HasSuffix(id, "Type") {
-			om.types = append(om.types, id)
-			continue
-		}
-	}
-
-	return om, nil
 }
 
 var (
