@@ -30,7 +30,7 @@ func TestDocument_GenerateComponent(t *testing.T) {
 	resolved, err := doc.resolvedPaths2()
 	require.NoError(t, err)
 
-	crd := "hidden.apiextensions.v1beta1.customResourceDefinition."
+	crd := "apiextensions.v1beta1.customResourceDefinition."
 
 	expected := map[string]documentValues{
 		crd + "mixin.metadata.labels": documentValues{
@@ -69,5 +69,18 @@ func TestDocument_GenerateComponent(t *testing.T) {
 	}
 
 	require.Equal(t, expected, resolved)
+}
 
+func Test_mixinConstructorName(t *testing.T) {
+	name := "apiextensions.v1beta1.customResourceDefinition.mixin.metadata"
+	got := mixinConstructorName(name)
+	expected := "createCustomResourceDefinitionMetadata"
+	require.Equal(t, expected, got)
+}
+
+func Test_mixinObjectName(t *testing.T) {
+	name := "apiextensions.v1beta1.customResourceDefinition.mixin.metadata"
+	got := mixinObjectName(name)
+	expected := "customResourceDefinitionMetadata"
+	require.Equal(t, expected, got)
 }

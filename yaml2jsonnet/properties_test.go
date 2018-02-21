@@ -11,7 +11,7 @@ func TestProperties_Paths(t *testing.T) {
 
 	var (
 		deploymentBase = []string{"apps", "v1beta2", "deployment"}
-		crdBase        = []string{"hidden", "apiextensions", "v1beta1", "customResourceDefinition"}
+		crdBase        = []string{"apiextensions", "v1beta1", "customResourceDefinition"}
 	)
 
 	cases := []struct {

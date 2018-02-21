@@ -10,7 +10,7 @@ import (
 var (
 	// TODO: might need something in ksonnet lib to look this up
 	groupMappings = map[string][]string{
-		"apiextensions.k8s.io":      []string{"hidden", "apiextensions"},
+		"apiextensions.k8s.io":      []string{"apiextensions"},
 		"rbac.authorization.k8s.io": []string{"rbac"},
 	}
 )
@@ -29,6 +29,10 @@ func (gvk *GVK) Group() []string {
 	}
 
 	return g
+}
+
+func (gvk *GVK) Path() []string {
+	return append(gvk.Group(), gvk.Version, gvk.Kind)
 }
 
 // TypeSpec describes an object's type.

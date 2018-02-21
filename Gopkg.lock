@@ -102,6 +102,12 @@
   revision = "f46dea2835bc4d5138d279753643c970250ef683"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/iancoleman/strcase"
+  packages = ["."]
+  revision = "3de563c3dc08a7504131e9d63f678b7d1c3e85d7"
+
+[[projects]]
   name = "github.com/joho/godotenv"
   packages = ["."]
   revision = "a79fa1e548e2c689c241d10173efd51e5d689d5b"
@@ -119,7 +125,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "91bd224489113c314bf4d491a7d037a89bb0ebbc"
+  revision = "269d5499ce0699af7d1963066f46329cdb67bac3"
   source = "github.com/bryanl/ksonnet-lib"
 
 [[projects]]
@@ -340,6 +346,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c3ddbc5f1f573ef3b78add105521bc2ac558f681d14178bef069e720ee9df3ac"
+  inputs-digest = "6cd6c1b7d2b70d6edc8f2d424bbe170b352fddefc2459622f9a8d5bc0bcb0a21"
   solver-name = "gps-cdcl"
   solver-version = 1

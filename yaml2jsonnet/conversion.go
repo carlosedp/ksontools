@@ -7,6 +7,10 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/iancoleman/strcase"
 
 	"github.com/bryanl/woowoo/node"
 	"github.com/bryanl/woowoo/pkg/docparser"
@@ -21,8 +25,9 @@ const (
 
 // Conversion converts YAML to ksonnet.
 type Conversion struct {
-	RootNode ast.Node
-	Sources  []io.Reader
+	RootNode   ast.Node
+	Sources    []io.Reader
+	sourceFile string
 }
 
 // NewConversion creates a Conversion.
@@ -40,8 +45,9 @@ func NewConversion(source, k8sLib string) (*Conversion, error) {
 	}
 
 	c := &Conversion{
-		RootNode: root,
-		Sources:  readers,
+		RootNode:   root,
+		Sources:    readers,
+		sourceFile: source,
 	}
 
 	return c, nil
@@ -55,12 +61,8 @@ func (c *Conversion) Process() error {
 			return errors.Wrap(err, "parse document")
 		}
 
-		// s, err := doc.Generate()
-		// if err != nil {
-		// 	return errors.Wrap(err, "generate libsonnet")
-		// }
-
-		s, err := doc.GenerateComponent()
+		componentName := generateComponentName(c.sourceFile)
+		s, err := doc.GenerateComponent2(componentName)
 		if err != nil {
 			return errors.Wrap(err, "generate libsonnet")
 		}
@@ -147,4 +149,10 @@ func checkSource(source string) error {
 	}
 
 	return nil
+}
+
+func generateComponentName(inputFileName string) string {
+	inputFileName = filepath.Base(inputFileName)
+	componentFile := strings.TrimSuffix(inputFileName, filepath.Ext(inputFileName))
+	return strcase.ToLowerCamel(componentFile)
 }

@@ -99,9 +99,10 @@ func TestNode_Search(t *testing.T) {
 			name: "empty path",
 			sr: SearchResult{
 				Fields: []string{
-					"admissionregistration", "apps", "authentication", "authorization", "autoscaling",
-					"batch", "certificates", "core", "extensions", "meta", "networking", "policy",
-					"rbac", "scheduling", "settings", "storage", "hidden",
+					"admissionregistration", "apiextensions", "apiregistration", "apps",
+					"authentication", "authorization", "autoscaling", "batch", "certificates",
+					"core", "extensions", "meta", "networking", "policy", "rbac",
+					"scheduling", "settings", "storage", "hidden",
 				},
 			},
 		},
@@ -120,9 +121,8 @@ func TestNode_Search(t *testing.T) {
 			path: []string{"apps", "v1beta2"},
 			sr: SearchResult{
 				Fields: []string{
-					"apiVersion", "controllerRevision", "controllerRevisionList", "daemonSet",
-					"daemonSetList", "deployment", "deploymentList", "replicaSet",
-					"replicaSetList", "scale", "statefulSet", "statefulSetList",
+					"apiVersion", "controllerRevision", "daemonSet", "deployment", "replicaSet",
+					"scale", "statefulSet",
 				},
 				MatchedPath: []string{"apps", "v1beta2"},
 			},

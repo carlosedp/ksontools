@@ -7,7 +7,6 @@ import (
 	"github.com/bryanl/woowoo/node"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -142,7 +141,6 @@ func (n *Node) findChild(obj *astext.Object, sp searchPath, name string, breadcr
 
 // Search searches for nodes given a path.
 func (n *Node) Search(path ...string) (SearchResult, error) {
-	logrus.Infof("searching %s", strings.Join(path, "."))
 	return searchObj(n.obj, path...)
 }
 

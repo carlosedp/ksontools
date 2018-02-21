@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"unicode"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/iancoleman/strcase"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	"github.com/sirupsen/logrus"
 
 	"github.com/go-yaml/yaml"
 	"github.com/google/go-jsonnet/ast"
@@ -20,9 +20,11 @@ import (
 
 // Document creates a ksonnet document for describing a resource.
 type Document struct {
-	Properties Properties
-	GVK        GVK
-	root       *astext.Object
+	Properties        Properties
+	GVK               GVK
+	root              *astext.Object
+	resolvedPaths     map[string]documentValues
+	buildConstructors map[string][]string
 }
 
 // NewDocument creates an instance of Document.
@@ -49,6 +51,20 @@ func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 	}
 
 	doc.GVK = gvk
+
+	resolvedPaths, err := doc.resolvedPaths2()
+	if err != nil {
+		return nil, errors.Wrap(err, "resolve document paths")
+	}
+
+	doc.resolvedPaths = resolvedPaths
+
+	ctors, err := buildConstructors(resolvedPaths)
+	if err != nil {
+		return nil, errors.Wrap(err, "build object constructors")
+	}
+
+	doc.buildConstructors = ctors
 
 	return doc, nil
 }
@@ -82,117 +98,159 @@ func (d *Document) Selector() string {
 	return fmt.Sprintf("k.%s", strings.Join(path, "."))
 }
 
-// Generate generates the document.
-func (d *Document) Generate() (string, error) {
-	selector := d.Selector()
-	comp := NewComponent()
-
-	comp.AddDeclaration(
-		Declaration{
-			Name:  d.GVK.Kind,
-			Value: NewDeclarationApply(selector),
-		})
-
-	nn := NewNode("root", d.root)
-
-	locals := NewLocals(d.GVK.Kind)
-
-	paths := d.Properties.Paths(d.GVK)
-	for _, path := range paths {
-		sr, err := nn.Search(path.Path...)
-		if err != nil {
-			return "", errors.Wrapf(err, "search path %s", strings.Join(path.Path, "."))
-		}
-
-		manifestPath := sr.MatchedPath[4:]
-		var paramName bytes.Buffer
-		for i := range manifestPath {
-			part := manifestPath[i]
-			if i > 0 {
-				part = strings.Title(part)
-			}
-
-			paramName.WriteString(part)
-		}
-
-		v, err := d.Properties.Value(manifestPath)
-		if err != nil {
-			return "", errors.Wrapf(err, "retrieve manifest values for %s", strings.Join(path.Path, "."))
-		}
-
-		if err := comp.AddParam(paramName.String(), v); err != nil {
-			return "", errors.Wrapf(err, "add param %s to component", paramName.String())
-		}
-
-		k := strings.Join(sr.MatchedPath[:len(sr.MatchedPath)-1], ".")
-		entry := LocalEntry{
-			Path:      k,
-			Setter:    sr.Setter,
-			ParamName: paramName.String(),
-		}
-
-		locals.Add(entry)
-	}
-
-	var kindParts []string
-
-	decls, err := locals.Generate()
-	if err != nil {
-		return "", errors.Wrap(err, "generate locals")
-	}
-
-	for _, decl := range decls {
-		kindParts = append(kindParts, decl.Name)
-		comp.AddDeclaration(decl)
-	}
-
-	nodeInit := fmt.Sprintf("init%s", strings.Title(d.GVK.Kind))
-
-	comp.AddDeclaration(Declaration{
-		Name:  nodeInit,
-		Value: NewDeclarationNoder(nodemaker.ApplyCall(fmt.Sprintf("%s.new", d.GVK.Kind))),
-	})
-
-	n := nodemaker.NewVar(nodeInit)
-
-	var left nodemaker.Noder = n
-	for _, name := range kindParts {
-		left = nodemaker.NewBinary(left, nodemaker.NewVar(name), nodemaker.BopPlus)
-	}
-
-	s, err := comp.Generate(left.Node())
-	if err != nil {
-		return "", errors.Wrap(err, "generate component")
-	}
-
-	return s, nil
+type localBlock struct {
+	locals []*nodemaker.Local
 }
 
-// GenerateComponent generates a ksonnet component for the document.
-func (d *Document) GenerateComponent() (string, error) {
-
-	ctor := nodemaker.NewVar("abcCustomResourceDefinition")
-	bodyArgs := nodemaker.NewArray([]nodemaker.Noder{ctor})
-	call := nodemaker.NewCall("k.core.v1.list.new")
-	object := nodemaker.NewApply(call, []nodemaker.Noder{bodyArgs}, nil)
-
-	resource, err := d.addResource()
-	if err != nil {
-		return "", err
+func newLocalBlock() *localBlock {
+	return &localBlock{
+		locals: make([]*nodemaker.Local, 0),
 	}
-	resource.Body = object.Node()
+}
 
-	ctor2, err := d.createConstructor()
-	if err != nil {
-		return "", err
+func (lb *localBlock) add(local *nodemaker.Local) {
+	lb.locals = append(lb.locals, local)
+}
+
+func (lb *localBlock) node(body nodemaker.Noder) nodemaker.Noder {
+	for i, local := range lb.locals {
+		if i == len(lb.locals)-1 {
+			local.Body = body
+			continue
+		}
+
+		local.Body = lb.locals[i+1]
 	}
 
-	ctor2.Body = resource
+	return lb.locals[0]
+}
 
-	header := d.declarations(ctor2)
+// GenerateComponent2 generates a component
+func (d *Document) GenerateComponent2(componentName string) (string, error) {
+	logrus.WithField("componentName", componentName).Info("generating component")
 
-	return d.render(header)
+	lb := newLocalBlock()
+	lb.add(importParams(componentName))
+	lb.add(createLocal("k", nodemaker.NewImport("k.libsonnet")))
 
+	mixins := d.buildMixins()
+	for _, mixin := range mixins {
+		lb.add(mixin)
+	}
+
+	objectCtorName, objectCtorFn := d.buildObject(componentName)
+	lb.add(createLocal(objectCtorName, objectCtorFn))
+
+	body := nodemaker.NewObject()
+
+	node := lb.node(body)
+	return d.render(node.Node())
+}
+
+func createLocal(name string, value nodemaker.Noder) *nodemaker.Local {
+	return nodemaker.NewLocal(name, value, nil)
+}
+
+func importParams(componentName string) *nodemaker.Local {
+	cc := nodemaker.NewCallChain(
+		nodemaker.NewVar("std"),
+		nodemaker.NewApply(nodemaker.NewIndex("extVar"), []nodemaker.Noder{
+			nodemaker.NewStringDouble("__ksonnet/params"),
+		}, nil),
+		nodemaker.NewIndex("components"),
+		nodemaker.NewIndex(componentName),
+	)
+
+	return createLocal("params", cc)
+}
+
+func (d *Document) buildObject(componentName string) (string, nodemaker.Noder) {
+	objectCtorName := strcase.ToLowerCamel(fmt.Sprintf("%s_%s", "create", componentName))
+
+	pathPrefix := append([]string{"k"}, d.GVK.Path()...)
+	objectCtorPath := strings.Join(append(pathPrefix, "new"), ".")
+	objectCtorCall := nodemaker.ApplyCall(objectCtorPath)
+
+	nodes := []nodemaker.Noder{objectCtorCall}
+
+	locals := newLocalBlock()
+	for ns := range d.buildConstructors {
+		objectName := mixinObjectName(ns)
+		ctorName := mixinConstructorName(ns)
+		ctorApply := nodemaker.ApplyCall(ctorName)
+
+		local := createLocal(objectName, ctorApply)
+		locals.add(local)
+		nodes = append(nodes, nodemaker.NewVar(objectName))
+	}
+
+	combiner := nodemaker.Combine(nodes...)
+	node := locals.node(combiner)
+
+	objectCtorFn := nodemaker.NewFunction([]string{"params"}, node)
+
+	return objectCtorName, objectCtorFn
+}
+
+func (d *Document) buildMixins() []*nodemaker.Local {
+	var locals []*nodemaker.Local
+	for ns, setters := range d.buildConstructors {
+		fnName := mixinConstructorName(ns)
+
+		links := []nodemaker.Chainable{
+			nodemaker.NewVar("k"),
+			nodemaker.NewCall(ns),
+		}
+
+		var args = []string{}
+		for _, setter := range setters {
+			arg := strings.TrimPrefix(setter, "with")
+			arg = strings.ToLower(arg)
+			args = append(args, arg)
+
+			links = append(
+				links,
+				nodemaker.NewApply(
+					nodemaker.NewIndex(setter),
+					[]nodemaker.Noder{nodemaker.NewVar(arg)},
+					nil))
+		}
+
+		fn := nodemaker.NewFunction(args, nodemaker.NewCallChain(links...))
+		locals = append(locals, createLocal(fnName, fn))
+	}
+
+	return locals
+}
+
+func mixinConstructorName(ns string) string {
+	nameParts := mixinNameParts(ns)
+	fnName := strcase.ToLowerCamel(fmt.Sprintf("create_%s", strings.Join(nameParts, "_")))
+	return fnName
+}
+
+func mixinObjectName(ns string) string {
+	nameParts := mixinNameParts(ns)
+	objectName := strcase.ToLowerCamel(strings.Join(nameParts, "_"))
+	return objectName
+}
+
+func mixinNameParts(ns string) []string {
+	parts := strings.Split(ns, ".")
+	mixinIndex := -1
+	for i, part := range parts {
+		if part == "mixin" {
+			mixinIndex = i
+		}
+	}
+
+	nameParts := make([]string, len(parts))
+	copy(nameParts, parts)
+	if mixinIndex >= 0 {
+		nameParts = append(nameParts[:mixinIndex], nameParts[mixinIndex+1:]...)
+	}
+
+	return nameParts[2:]
 }
 
 type componentImport struct {
@@ -224,25 +282,6 @@ func (d *Document) declarations(next ast.Node) *ast.Local {
 	declLast.Body = next
 
 	return declRoot
-}
-
-func (d *Document) createConstructor() (*ast.Local, error) {
-	// local createCustomResourceDefinition(params) = {}
-
-	paths, err := d.resolvedPaths()
-	if err != nil {
-		return nil, err
-	}
-
-	spew.Fdump(ioutil.Discard, paths)
-
-	fn := nodemaker.NewFunction([]string{"params"}, nodemaker.NewObject())
-	decl := Declaration{
-		Name:  "createCustomResourceDefinition",
-		Value: NewDeclarationNoder(fn),
-	}
-
-	return genDeclaration(decl), nil
 }
 
 func (d *Document) addResource() (*ast.Local, error) {
@@ -333,57 +372,4 @@ func (d *Document) resolvedPaths2() (map[string]documentValues, error) {
 	}
 
 	return m, nil
-}
-
-func (d *Document) resolvedPaths() (*Locals, error) {
-	nn := NewNode("root", d.root)
-
-	locals := NewLocals(d.GVK.Kind)
-
-	paths := d.Properties.Paths(d.GVK)
-	for _, path := range paths {
-		sr, err := nn.Search(path.Path...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "search path %s", strings.Join(path.Path, "."))
-		}
-
-		manifestPath := sr.MatchedPath[4:]
-		if path.Path[len(path.Path)-1] != manifestPath[len(manifestPath)-1] {
-			continue
-		}
-
-		// spew.Dump(path, sr)
-
-		var paramName bytes.Buffer
-		for i := range manifestPath {
-			part := manifestPath[i]
-			if i > 0 {
-				part = strings.Title(part)
-			}
-
-			paramName.WriteString(part)
-		}
-
-		_, err = d.Properties.Value(manifestPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "retrieve manifest values for %s", strings.Join(path.Path, "."))
-		}
-
-		// if err := comp.AddParam(paramName.String(), v); err != nil {
-		// 	return nil, errors.Wrapf(err, "add param %s to component", paramName.String())
-		// }
-
-		k := strings.Join(sr.MatchedPath[:len(sr.MatchedPath)-1], ".")
-		// fmt.Println(k, "=", v)
-		entry := LocalEntry{
-			Path:      k,
-			Setter:    sr.Setter,
-			ParamName: paramName.String(),
-		}
-
-		locals.Add(entry)
-	}
-
-	// return locals, nil
-	return nil, nil
 }
