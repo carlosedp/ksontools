@@ -10,7 +10,7 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
+	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/sirupsen/logrus"
 
@@ -92,20 +92,20 @@ func importYaml(r io.Reader) (TypeSpec, Properties, error) {
 }
 
 type localBlock struct {
-	locals []*nodemaker.Local
+	locals []*nm.Local
 }
 
 func newLocalBlock() *localBlock {
 	return &localBlock{
-		locals: make([]*nodemaker.Local, 0),
+		locals: make([]*nm.Local, 0),
 	}
 }
 
-func (lb *localBlock) add(local *nodemaker.Local) {
+func (lb *localBlock) add(local *nm.Local) {
 	lb.locals = append(lb.locals, local)
 }
 
-func (lb *localBlock) node(body nodemaker.Noder) nodemaker.Noder {
+func (lb *localBlock) node(body nm.Noder) nm.Noder {
 	for i, local := range lb.locals {
 		if i == len(lb.locals)-1 {
 			local.Body = body
@@ -124,7 +124,7 @@ func (d *Document) GenerateComponent(componentName string) (string, error) {
 
 	lb := newLocalBlock()
 	lb.add(importParams(componentName))
-	lb.add(createLocal("k", nodemaker.NewImport("k.libsonnet")))
+	lb.add(createLocal("k", nm.NewImport("k.libsonnet")))
 
 	mixins := d.buildMixins()
 	for _, mixin := range mixins {
@@ -135,7 +135,7 @@ func (d *Document) GenerateComponent(componentName string) (string, error) {
 	lb.add(createLocal(objectCtorName, objectCtorFn))
 	lb.add(createLocal(componentName, d.buildObject(componentName)))
 
-	body := nodemaker.NewVar(componentName)
+	body := nm.NewVar(componentName)
 	node := lb.node(body)
 
 	return d.render(node.Node())
@@ -151,26 +151,26 @@ func (d *Document) genParams() map[string]interface{} {
 	return m
 }
 
-func createLocal(name string, value nodemaker.Noder) *nodemaker.Local {
-	return nodemaker.NewLocal(name, value, nil)
+func createLocal(name string, value nm.Noder) *nm.Local {
+	return nm.NewLocal(name, value, nil)
 }
 
-func importParams(componentName string) *nodemaker.Local {
-	cc := nodemaker.NewCallChain(
-		nodemaker.NewVar("std"),
-		nodemaker.NewApply(nodemaker.NewIndex("extVar"), []nodemaker.Noder{
-			nodemaker.NewStringDouble("__ksonnet/params"),
+func importParams(componentName string) *nm.Local {
+	cc := nm.NewCallChain(
+		nm.NewVar("std"),
+		nm.NewApply(nm.NewIndex("extVar"), []nm.Noder{
+			nm.NewStringDouble("__ksonnet/params"),
 		}, nil),
-		nodemaker.NewIndex("components"),
-		nodemaker.NewIndex(componentName),
+		nm.NewIndex("components"),
+		nm.NewIndex(componentName),
 	)
 
 	return createLocal("params", cc)
 }
 
-func (d *Document) buildObject(componentName string) nodemaker.Noder {
+func (d *Document) buildObject(componentName string) nm.Noder {
 	objectCtorName := genObjectCtorName(componentName)
-	apply := nodemaker.NewApply(nodemaker.NewVar(objectCtorName), []nodemaker.Noder{nodemaker.NewVar("params")}, nil)
+	apply := nm.NewApply(nm.NewVar(objectCtorName), []nm.Noder{nm.NewVar("params")}, nil)
 	return apply
 }
 
@@ -178,43 +178,43 @@ func genObjectCtorName(componentName string) string {
 	return strcase.ToLowerCamel(fmt.Sprintf("%s_%s", "create", componentName))
 }
 
-func (d *Document) buildObjectCtor(componentName string) (string, nodemaker.Noder) {
+func (d *Document) buildObjectCtor(componentName string) (string, nm.Noder) {
 	objectCtorName := genObjectCtorName(componentName)
 
 	pathPrefix := append([]string{"k"}, d.GVK.Path()...)
 	objectCtorPath := strings.Join(append(pathPrefix, "new"), ".")
-	objectCtorCall := nodemaker.ApplyCall(objectCtorPath)
+	objectCtorCall := nm.ApplyCall(objectCtorPath)
 
-	nodes := []nodemaker.Noder{objectCtorCall}
+	nodes := []nm.Noder{objectCtorCall}
 
 	locals := newLocalBlock()
 
 	for _, ns := range d.paths() {
 		ctorArguments := d.buildConstructors[ns]
-		var args []nodemaker.Noder
+		var args []nm.Noder
 		for _, ca := range ctorArguments {
-			args = append(args, nodemaker.NewCall(fmt.Sprintf("params.%s", ca.paramName)))
+			args = append(args, nm.NewCall(fmt.Sprintf("params.%s", ca.paramName)))
 		}
 
 		objectName := mixinObjectName(ns)
 		ctorName := mixinConstructorName(ns)
-		ctorApply := nodemaker.ApplyCall(ctorName, args...)
+		ctorApply := nm.ApplyCall(ctorName, args...)
 
 		local := createLocal(objectName, ctorApply)
 		locals.add(local)
-		nodes = append(nodes, nodemaker.NewVar(objectName))
+		nodes = append(nodes, nm.NewVar(objectName))
 	}
 
-	combiner := nodemaker.Combine(nodes...)
+	combiner := nm.Combine(nodes...)
 	node := locals.node(combiner)
 
-	objectCtorFn := nodemaker.NewFunction([]string{"params"}, node)
+	objectCtorFn := nm.NewFunction([]string{"params"}, node)
 
 	return objectCtorName, objectCtorFn
 }
 
-func (d *Document) buildMixins() []*nodemaker.Local {
-	var locals []*nodemaker.Local
+func (d *Document) buildMixins() []*nm.Local {
+	var locals []*nm.Local
 
 	var names []string
 	for ns := range d.buildConstructors {
@@ -226,9 +226,9 @@ func (d *Document) buildMixins() []*nodemaker.Local {
 		ctorArguments := d.buildConstructors[ns]
 		fnName := mixinConstructorName(ns)
 
-		links := []nodemaker.Chainable{
-			nodemaker.NewVar("k"),
-			nodemaker.NewCall(ns),
+		links := []nm.Chainable{
+			nm.NewVar("k"),
+			nm.NewCall(ns),
 		}
 
 		var args = []string{}
@@ -239,13 +239,13 @@ func (d *Document) buildMixins() []*nodemaker.Local {
 
 			links = append(
 				links,
-				nodemaker.NewApply(
-					nodemaker.NewIndex(ca.setter),
-					[]nodemaker.Noder{nodemaker.NewVar(arg)},
+				nm.NewApply(
+					nm.NewIndex(ca.setter),
+					[]nm.Noder{nm.NewVar(arg)},
 					nil))
 		}
 
-		fn := nodemaker.NewFunction(args, nodemaker.NewCallChain(links...))
+		fn := nm.NewFunction(args, nm.NewCallChain(links...))
 		locals = append(locals, createLocal(fnName, fn))
 	}
 
