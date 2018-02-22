@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -24,7 +25,7 @@ type Document struct {
 	GVK               GVK
 	root              *astext.Object
 	resolvedPaths     map[string]documentValues
-	buildConstructors map[string][]string
+	buildConstructors map[string][]ctorArgument
 }
 
 // NewDocument creates an instance of Document.
@@ -52,7 +53,7 @@ func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
 
 	doc.GVK = gvk
 
-	resolvedPaths, err := doc.resolvedPaths2()
+	resolvedPaths, err := doc.generateResolvedPaths()
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve document paths")
 	}
@@ -90,14 +91,6 @@ func importYaml(r io.Reader) (TypeSpec, Properties, error) {
 	return ts, props, nil
 }
 
-// Selector is the selector for the resource this document represents.
-func (d *Document) Selector() string {
-	g := d.GVK.Group()
-
-	path := append(g, d.GVK.Version, d.GVK.Kind)
-	return fmt.Sprintf("k.%s", strings.Join(path, "."))
-}
-
 type localBlock struct {
 	locals []*nodemaker.Local
 }
@@ -125,8 +118,8 @@ func (lb *localBlock) node(body nodemaker.Noder) nodemaker.Noder {
 	return lb.locals[0]
 }
 
-// GenerateComponent2 generates a component
-func (d *Document) GenerateComponent2(componentName string) (string, error) {
+// GenerateComponent generates a component
+func (d *Document) GenerateComponent(componentName string) (string, error) {
 	logrus.WithField("componentName", componentName).Info("generating component")
 
 	lb := newLocalBlock()
@@ -138,13 +131,24 @@ func (d *Document) GenerateComponent2(componentName string) (string, error) {
 		lb.add(mixin)
 	}
 
-	objectCtorName, objectCtorFn := d.buildObject(componentName)
+	objectCtorName, objectCtorFn := d.buildObjectCtor(componentName)
 	lb.add(createLocal(objectCtorName, objectCtorFn))
+	lb.add(createLocal(componentName, d.buildObject(componentName)))
 
-	body := nodemaker.NewObject()
-
+	body := nodemaker.NewVar(componentName)
 	node := lb.node(body)
+
 	return d.render(node.Node())
+}
+
+func (d *Document) genParams() map[string]interface{} {
+	m := make(map[string]interface{})
+	for ns, dv := range d.resolvedPaths {
+		name := paramName(ns)
+		m[name] = dv.value
+	}
+
+	return m
 }
 
 func createLocal(name string, value nodemaker.Noder) *nodemaker.Local {
@@ -164,8 +168,18 @@ func importParams(componentName string) *nodemaker.Local {
 	return createLocal("params", cc)
 }
 
-func (d *Document) buildObject(componentName string) (string, nodemaker.Noder) {
-	objectCtorName := strcase.ToLowerCamel(fmt.Sprintf("%s_%s", "create", componentName))
+func (d *Document) buildObject(componentName string) nodemaker.Noder {
+	objectCtorName := genObjectCtorName(componentName)
+	apply := nodemaker.NewApply(nodemaker.NewVar(objectCtorName), []nodemaker.Noder{nodemaker.NewVar("params")}, nil)
+	return apply
+}
+
+func genObjectCtorName(componentName string) string {
+	return strcase.ToLowerCamel(fmt.Sprintf("%s_%s", "create", componentName))
+}
+
+func (d *Document) buildObjectCtor(componentName string) (string, nodemaker.Noder) {
+	objectCtorName := genObjectCtorName(componentName)
 
 	pathPrefix := append([]string{"k"}, d.GVK.Path()...)
 	objectCtorPath := strings.Join(append(pathPrefix, "new"), ".")
@@ -174,10 +188,17 @@ func (d *Document) buildObject(componentName string) (string, nodemaker.Noder) {
 	nodes := []nodemaker.Noder{objectCtorCall}
 
 	locals := newLocalBlock()
-	for ns := range d.buildConstructors {
+
+	for _, ns := range d.paths() {
+		ctorArguments := d.buildConstructors[ns]
+		var args []nodemaker.Noder
+		for _, ca := range ctorArguments {
+			args = append(args, nodemaker.NewCall(fmt.Sprintf("params.%s", ca.paramName)))
+		}
+
 		objectName := mixinObjectName(ns)
 		ctorName := mixinConstructorName(ns)
-		ctorApply := nodemaker.ApplyCall(ctorName)
+		ctorApply := nodemaker.ApplyCall(ctorName, args...)
 
 		local := createLocal(objectName, ctorApply)
 		locals.add(local)
@@ -194,7 +215,15 @@ func (d *Document) buildObject(componentName string) (string, nodemaker.Noder) {
 
 func (d *Document) buildMixins() []*nodemaker.Local {
 	var locals []*nodemaker.Local
-	for ns, setters := range d.buildConstructors {
+
+	var names []string
+	for ns := range d.buildConstructors {
+		names = append(names, ns)
+	}
+	sort.Strings(names)
+
+	for _, ns := range names {
+		ctorArguments := d.buildConstructors[ns]
 		fnName := mixinConstructorName(ns)
 
 		links := []nodemaker.Chainable{
@@ -203,15 +232,15 @@ func (d *Document) buildMixins() []*nodemaker.Local {
 		}
 
 		var args = []string{}
-		for _, setter := range setters {
-			arg := strings.TrimPrefix(setter, "with")
+		for _, ca := range ctorArguments {
+			arg := strings.TrimPrefix(ca.setter, "with")
 			arg = strings.ToLower(arg)
 			args = append(args, arg)
 
 			links = append(
 				links,
 				nodemaker.NewApply(
-					nodemaker.NewIndex(setter),
+					nodemaker.NewIndex(ca.setter),
 					[]nodemaker.Noder{nodemaker.NewVar(arg)},
 					nil))
 		}
@@ -221,6 +250,29 @@ func (d *Document) buildMixins() []*nodemaker.Local {
 	}
 
 	return locals
+}
+
+func paramName(s string) string {
+	nameParts := mixinNameParts(s)
+
+	var name string
+
+	for i, r := range nameParts[0] {
+		if i == 0 {
+			name += string(r)
+			continue
+		}
+
+		if unicode.IsUpper(r) {
+			name += string(unicode.ToLower(r))
+		}
+	}
+
+	for _, s := range nameParts[1:] {
+		name += strings.Title(s)
+	}
+
+	return name
 }
 
 func mixinConstructorName(ns string) string {
@@ -253,61 +305,6 @@ func mixinNameParts(ns string) []string {
 	return nameParts[2:]
 }
 
-type componentImport struct {
-	name     string
-	location string
-}
-
-func (d *Document) declarations(next ast.Node) *ast.Local {
-	imports := []componentImport{
-		{name: "k", location: "k.libsonnet"},
-		{name: "stdlib", location: "stdlib.libsonnet"},
-	}
-
-	var declRoot *ast.Local
-	var declLast *ast.Local
-	for _, imp := range imports {
-		decl := Declaration{Name: imp.name, Value: NewDeclarationImport(imp.location)}
-		obj := genDeclaration(decl)
-
-		if declRoot == nil {
-			declRoot = obj
-			declLast = obj
-		} else {
-			declLast.Body = obj
-			declLast = obj
-		}
-	}
-
-	declLast.Body = next
-
-	return declRoot
-}
-
-func (d *Document) addResource() (*ast.Local, error) {
-	kind := strings.Title(d.GVK.Kind)
-
-	var resourceName string
-	for _, char := range kind {
-		if unicode.IsUpper(char) {
-			resourceName += string(char)
-		}
-	}
-
-	resourceName = strings.ToLower(resourceName)
-
-	call := nodemaker.NewCall(fmt.Sprintf("create%s", kind))
-	args := nodemaker.NewCall("params")
-	apply := nodemaker.NewApply(call, []nodemaker.Noder{args}, nil)
-
-	decl := Declaration{
-		Name:  resourceName,
-		Value: NewDeclarationNoder(apply),
-	}
-
-	return genDeclaration(decl), nil
-}
-
 func (d *Document) render(root ast.Node) (string, error) {
 	var buf bytes.Buffer
 	if err := printer.Fprint(&buf, root); err != nil {
@@ -322,7 +319,17 @@ type documentValues struct {
 	value  interface{}
 }
 
-func (d *Document) resolvedPaths2() (map[string]documentValues, error) {
+func (d *Document) paths() []string {
+	var names []string
+	for ns := range d.buildConstructors {
+		names = append(names, ns)
+	}
+	sort.Strings(names)
+
+	return names
+}
+
+func (d *Document) generateResolvedPaths() (map[string]documentValues, error) {
 	nn := NewNode("root", d.root)
 
 	m := make(map[string]documentValues)

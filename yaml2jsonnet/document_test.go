@@ -27,7 +27,7 @@ func TestDocument_GenerateComponent(t *testing.T) {
 
 	// require.Equal(t,)
 
-	resolved, err := doc.resolvedPaths2()
+	resolved, err := doc.generateResolvedPaths()
 	require.NoError(t, err)
 
 	crd := "apiextensions.v1beta1.customResourceDefinition."
@@ -82,5 +82,12 @@ func Test_mixinObjectName(t *testing.T) {
 	name := "apiextensions.v1beta1.customResourceDefinition.mixin.metadata"
 	got := mixinObjectName(name)
 	expected := "customResourceDefinitionMetadata"
+	require.Equal(t, expected, got)
+}
+
+func Test_paramName(t *testing.T) {
+	name := "apiextensions.v1beta1.customResourceDefinition.mixin.spec.group"
+	got := paramName(name)
+	expected := "crdSpecGroup"
 	require.Equal(t, expected, got)
 }

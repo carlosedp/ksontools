@@ -62,7 +62,7 @@ func (c *Conversion) Process() error {
 		}
 
 		componentName := generateComponentName(c.sourceFile)
-		s, err := doc.GenerateComponent2(componentName)
+		s, err := doc.GenerateComponent(componentName)
 		if err != nil {
 			return errors.Wrap(err, "generate libsonnet")
 		}

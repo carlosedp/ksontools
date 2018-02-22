@@ -49,16 +49,20 @@ func Test_buildConstructors(t *testing.T) {
 	got, err := buildConstructors(in)
 	require.NoError(t, err)
 
-	// expected := []string{
-	// 	fmt.Sprintf("%s.mixin.metadata.withLabels().withName()", crd),
-	// 	fmt.Sprintf("%s.mixin.spec.names.withKind().withPlural()", crd),
-	// 	fmt.Sprintf("%s.mixin.spec.withGroup().withScope().withVersion()", crd),
-	// }
-
-	expected := map[string][]string{
-		fmt.Sprintf("%s.mixin.metadata", crd):   []string{"withLabels", "withName"},
-		fmt.Sprintf("%s.mixin.spec.names", crd): []string{"withKind", "withPlural"},
-		fmt.Sprintf("%s.mixin.spec", crd):       []string{"withGroup", "withScope", "withVersion"},
+	expected := map[string][]ctorArgument{
+		fmt.Sprintf("%s.mixin.metadata", crd): []ctorArgument{
+			{setter: "withLabels", paramName: "crdMetadataLabels"},
+			{setter: "withName", paramName: "crdMetadataName"},
+		},
+		fmt.Sprintf("%s.mixin.spec.names", crd): []ctorArgument{
+			{setter: "withKind", paramName: "crdSpecNamesKind"},
+			{setter: "withPlural", paramName: "crdSpecNamesPlural"},
+		},
+		fmt.Sprintf("%s.mixin.spec", crd): []ctorArgument{
+			{setter: "withGroup", paramName: "crdSpecGroup"},
+			{setter: "withScope", paramName: "crdSpecScope"},
+			{setter: "withVersion", paramName: "crdSpecVersion"},
+		},
 	}
 
 	require.Equal(t, expected, got)

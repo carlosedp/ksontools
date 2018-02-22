@@ -7,25 +7,37 @@ import (
 	"github.com/pkg/errors"
 )
 
-func buildConstructors(m map[string]documentValues) (map[string][]string, error) {
+type ctorArgument struct {
+	setter    string
+	paramName string
+}
 
-	groups := make(map[string][]string)
+func buildConstructors(m map[string]documentValues) (map[string][]ctorArgument, error) {
 
-	for _, dv := range m {
+	groups := make(map[string][]ctorArgument)
+
+	for paramPath, dv := range m {
 		ns, setter, err := parseSetterNamespace(dv.setter)
 		if err != nil {
 			return nil, errors.Wrap(err, "parse setter namespace")
 		}
 
 		if _, ok := groups[ns]; !ok {
-			groups[ns] = make([]string, 0)
+			groups[ns] = make([]ctorArgument, 0)
 		}
 
-		groups[ns] = append(groups[ns], setter)
+		ca := ctorArgument{
+			setter:    setter,
+			paramName: paramName(paramPath),
+		}
+
+		groups[ns] = append(groups[ns], ca)
 	}
 
 	for k := range groups {
-		sort.Strings(groups[k])
+		sort.Slice(groups[k], func(i, j int) bool {
+			return groups[k][i].setter < groups[k][j].setter
+		})
 	}
 
 	return groups, nil
