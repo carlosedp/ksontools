@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/iancoleman/strcase"
 
 	"github.com/bryanl/woowoo/node"
@@ -56,20 +57,31 @@ func NewConversion(source, k8sLib string) (*Conversion, error) {
 // Process processes the documents supplied.
 func (c *Conversion) Process() error {
 	for _, r := range c.Sources {
-		doc, err := NewDocument(r, c.RootNode)
+		componentName := generateComponentName(c.sourceFile)
+		doc, err := NewDocument(componentName, r, c.RootNode)
 		if err != nil {
 			return errors.Wrap(err, "parse document")
 		}
 
-		componentName := generateComponentName(c.sourceFile)
-		s, err := doc.GenerateComponent(componentName)
+		s, err := doc.GenerateComponent()
 		if err != nil {
-			return errors.Wrap(err, "generate libsonnet")
+			return errors.Wrap(err, "generate jsonnet")
+		}
+
+		if err := doc.UpdateParams(&fakeUpdater{}); err != nil {
+			return errors.Wrap(err, "update params")
 		}
 
 		fmt.Println(s)
 	}
 
+	return nil
+}
+
+type fakeUpdater struct{}
+
+func (fu *fakeUpdater) Update(componentName string, params map[string]interface{}) error {
+	spew.Dump("---", componentName, params)
 	return nil
 }
 

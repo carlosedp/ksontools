@@ -26,17 +26,19 @@ type Document struct {
 	root              *astext.Object
 	resolvedPaths     map[string]documentValues
 	buildConstructors map[string][]ctorArgument
+	componentName     string
 }
 
 // NewDocument creates an instance of Document.
-func NewDocument(r io.Reader, root ast.Node) (*Document, error) {
+func NewDocument(componentName string, r io.Reader, root ast.Node) (*Document, error) {
 	obj, ok := root.(*astext.Object)
 	if !ok {
 		return nil, errors.New("root is not an *ast.Object")
 	}
 
 	doc := &Document{
-		root: obj,
+		root:          obj,
+		componentName: componentName,
 	}
 
 	ts, props, err := importYaml(r)
@@ -119,11 +121,12 @@ func (lb *localBlock) node(body nm.Noder) nm.Noder {
 }
 
 // GenerateComponent generates a component
-func (d *Document) GenerateComponent(componentName string) (string, error) {
+func (d *Document) GenerateComponent() (string, error) {
+	componentName := d.componentName
 	logrus.WithField("componentName", componentName).Info("generating component")
 
 	lb := newLocalBlock()
-	lb.add(importParams(componentName))
+	lb.add(d.importParams())
 	lb.add(createLocal("k", nm.NewImport("k.libsonnet")))
 
 	mixins := d.buildMixins()
@@ -131,14 +134,31 @@ func (d *Document) GenerateComponent(componentName string) (string, error) {
 		lb.add(mixin)
 	}
 
-	objectCtorName, objectCtorFn := d.buildObjectCtor(componentName)
+	objectCtorName, objectCtorFn := d.buildObjectCtor()
 	lb.add(createLocal(objectCtorName, objectCtorFn))
-	lb.add(createLocal(componentName, d.buildObject(componentName)))
+	lb.add(createLocal(componentName, d.buildObject()))
 
 	body := nm.NewVar(componentName)
 	node := lb.node(body)
 
 	return d.render(node.Node())
+}
+
+// ParamsUpdater is an interface for updating params.
+type ParamsUpdater interface {
+	Update(componentName string, params map[string]interface{}) error
+}
+
+// UpdateParams updates params.
+func (d *Document) UpdateParams(pu ParamsUpdater) error {
+	m := make(map[string]interface{})
+	for _, ctorArugments := range d.buildConstructors {
+		for _, ca := range ctorArugments {
+			m[ca.paramName] = ca.paramValue
+		}
+	}
+
+	return pu.Update(d.componentName, m)
 }
 
 func (d *Document) genParams() map[string]interface{} {
@@ -155,20 +175,21 @@ func createLocal(name string, value nm.Noder) *nm.Local {
 	return nm.NewLocal(name, value, nil)
 }
 
-func importParams(componentName string) *nm.Local {
+func (d *Document) importParams() *nm.Local {
 	cc := nm.NewCallChain(
 		nm.NewVar("std"),
 		nm.NewApply(nm.NewIndex("extVar"), []nm.Noder{
 			nm.NewStringDouble("__ksonnet/params"),
 		}, nil),
 		nm.NewIndex("components"),
-		nm.NewIndex(componentName),
+		nm.NewIndex(d.componentName),
 	)
 
 	return createLocal("params", cc)
 }
 
-func (d *Document) buildObject(componentName string) nm.Noder {
+func (d *Document) buildObject() nm.Noder {
+	componentName := d.componentName
 	objectCtorName := genObjectCtorName(componentName)
 	apply := nm.NewApply(nm.NewVar(objectCtorName), []nm.Noder{nm.NewVar("params")}, nil)
 	return apply
@@ -178,7 +199,8 @@ func genObjectCtorName(componentName string) string {
 	return strcase.ToLowerCamel(fmt.Sprintf("%s_%s", "create", componentName))
 }
 
-func (d *Document) buildObjectCtor(componentName string) (string, nm.Noder) {
+func (d *Document) buildObjectCtor() (string, nm.Noder) {
+	componentName := d.componentName
 	objectCtorName := genObjectCtorName(componentName)
 
 	pathPrefix := append([]string{"k"}, d.GVK.Path()...)

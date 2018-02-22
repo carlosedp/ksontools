@@ -8,8 +8,9 @@ import (
 )
 
 type ctorArgument struct {
-	setter    string
-	paramName string
+	setter     string
+	paramName  string
+	paramValue interface{}
 }
 
 func buildConstructors(m map[string]documentValues) (map[string][]ctorArgument, error) {
@@ -27,8 +28,9 @@ func buildConstructors(m map[string]documentValues) (map[string][]ctorArgument, 
 		}
 
 		ca := ctorArgument{
-			setter:    setter,
-			paramName: paramName(paramPath),
+			setter:     setter,
+			paramName:  paramName(paramPath),
+			paramValue: dv.value,
 		}
 
 		groups[ns] = append(groups[ns], ca)

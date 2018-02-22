@@ -16,7 +16,7 @@ func TestDocument_GenerateComponent(t *testing.T) {
 	node, err := ImportJsonnet("testdata/k8s.libsonnet")
 	require.NoError(t, err)
 
-	doc, err := NewDocument(f, node)
+	doc, err := NewDocument("certificateCrd", f, node)
 	require.NoError(t, err)
 
 	// got, err := doc.GenerateComponent()

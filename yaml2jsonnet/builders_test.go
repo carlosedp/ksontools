@@ -13,11 +13,11 @@ func Test_buildConstructors(t *testing.T) {
 	in := map[string]documentValues{
 		crd + ".mixin.metadata.labels": documentValues{
 			setter: crd + ".mixin.metadata.withLabels",
-			value: map[interface{}]interface{}{
+			value: map[string]interface{}{
 				"app":      "cert-manager",
 				"chart":    "cert-manager-0.2.2",
-				"release":  "cert-manager",
 				"heritage": "Tiller",
+				"release":  "cert-manager",
 			},
 		},
 		crd + ".mixin.metadata.name": documentValues{
@@ -51,17 +51,50 @@ func Test_buildConstructors(t *testing.T) {
 
 	expected := map[string][]ctorArgument{
 		fmt.Sprintf("%s.mixin.metadata", crd): []ctorArgument{
-			{setter: "withLabels", paramName: "crdMetadataLabels"},
-			{setter: "withName", paramName: "crdMetadataName"},
+			{
+				setter:    "withLabels",
+				paramName: "crdMetadataLabels",
+				paramValue: map[string]interface{}{
+					"app":      "cert-manager",
+					"chart":    "cert-manager-0.2.2",
+					"release":  "cert-manager",
+					"heritage": "Tiller",
+				},
+			},
+			{
+				setter:     "withName",
+				paramName:  "crdMetadataName",
+				paramValue: "certificates.certmanager.k8s.io",
+			},
 		},
 		fmt.Sprintf("%s.mixin.spec.names", crd): []ctorArgument{
-			{setter: "withKind", paramName: "crdSpecNamesKind"},
-			{setter: "withPlural", paramName: "crdSpecNamesPlural"},
+			{
+				setter:     "withKind",
+				paramName:  "crdSpecNamesKind",
+				paramValue: "Certificate",
+			},
+			{
+				setter:     "withPlural",
+				paramName:  "crdSpecNamesPlural",
+				paramValue: "certificates",
+			},
 		},
 		fmt.Sprintf("%s.mixin.spec", crd): []ctorArgument{
-			{setter: "withGroup", paramName: "crdSpecGroup"},
-			{setter: "withScope", paramName: "crdSpecScope"},
-			{setter: "withVersion", paramName: "crdSpecVersion"},
+			{
+				setter:     "withGroup",
+				paramName:  "crdSpecGroup",
+				paramValue: "certmanager.k8s.io",
+			},
+			{
+				setter:     "withScope",
+				paramName:  "crdSpecScope",
+				paramValue: "Namespaced",
+			},
+			{
+				setter:     "withVersion",
+				paramName:  "crdSpecVersion",
+				paramValue: "v1alpha1",
+			},
 		},
 	}
 
