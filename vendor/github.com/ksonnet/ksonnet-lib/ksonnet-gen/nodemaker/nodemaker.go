@@ -66,12 +66,55 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 			o.Set(InheritedKey(name), NewInt(t))
 		case bool:
 			o.Set(InheritedKey(name), NewBoolean(t))
+		case []interface{}:
+			var elements []Noder
+			for _, val := range t {
+				noder, err := convertValueToNoder(val)
+				if err != nil {
+					return nil, err
+				}
+
+				elements = append(elements, noder)
+			}
+			array := NewArray(elements)
+			o.Set(InheritedKey(name), array)
+		case map[interface{}]interface{}:
+			child := NewObject()
+			for k, v := range t {
+				s, ok := k.(string)
+				if !ok {
+					return nil, errors.New("map key is not a string")
+				}
+
+				noder, err := convertValueToNoder(v)
+				if err != nil {
+					return nil, err
+				}
+				child.Set(InheritedKey(s), noder)
+
+			}
+			o.Set(InheritedKey(name), child)
 		default:
 			return nil, errors.Errorf("unsupported type %T", t)
 		}
 	}
 
 	return o, nil
+}
+
+func convertValueToNoder(val interface{}) (Noder, error) {
+	switch t := val.(type) {
+	case string:
+		return NewStringDouble(t), nil
+	case float64:
+		return NewFloat(t), nil
+	case int:
+		return NewInt(t), nil
+	case bool:
+		return NewBoolean(t), nil
+	default:
+		return nil, errors.Errorf("unsupported type %T", t)
+	}
 }
 
 // NewObject creates an Object. ObjectOpt functional arguments can be used to configure the
@@ -140,7 +183,12 @@ func (o *Object) Node() ast.Node {
 		of := astext.ObjectField{
 			Comment: o.generateComment(k.comment),
 		}
-		of.Id = newIdentifier(k.name)
+
+		if k.category == ast.ObjectFieldStr {
+			of.Expr1 = NewStringDouble(k.name).Node()
+		} else {
+			of.Id = newIdentifier(k.name)
+		}
 		of.Kind = k.category
 		of.Hide = k.visibility
 		of.Expr2 = v.Node()

@@ -144,13 +144,13 @@ func (d *Document) GenerateComponent() (string, error) {
 	return d.render(node.Node())
 }
 
-// ParamsUpdater is an interface for updating params.
-type ParamsUpdater interface {
-	Update(componentName string, params map[string]interface{}) error
-}
+// ParamsUpdater is a function for updating params.
+type ParamsUpdater func(componentName string, params map[string]interface{}) error
 
 // UpdateParams updates params.
 func (d *Document) UpdateParams(pu ParamsUpdater) error {
+	logrus.WithField("componentName", d.componentName).
+		Info("updating component parameters")
 	m := make(map[string]interface{})
 	for _, ctorArugments := range d.buildConstructors {
 		for _, ca := range ctorArugments {
@@ -158,7 +158,7 @@ func (d *Document) UpdateParams(pu ParamsUpdater) error {
 		}
 	}
 
-	return pu.Update(d.componentName, m)
+	return pu(d.componentName, m)
 }
 
 func (d *Document) genParams() map[string]interface{} {

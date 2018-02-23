@@ -17,9 +17,9 @@ limitations under the License.
 package docparser
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
@@ -457,12 +457,20 @@ func (p *parser) parseObjectRemainder(tok *token) (ast.Node, *token, error) {
 			var comment *astext.Comment
 
 			if len(next.fodder) > 0 {
-				var buf bytes.Buffer
+				var comments []string
 				for _, f := range next.fodder {
-					buf.WriteString(f.Data + "\n")
+					if f.Kind != FodderCommentCpp {
+						continue
+					}
+
+					text := strings.TrimSpace(f.Data)
+					comments = append(comments, text)
 				}
 
-				comment = &astext.Comment{Text: buf.String()}
+				s := strings.Join(comments, "\n")
+				if len(s) > 0 {
+					comment = &astext.Comment{Text: s}
+				}
 			}
 
 			fields = append(fields, astext.ObjectField{

@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iancoleman/strcase"
 
+	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/node"
+	"github.com/bryanl/woowoo/params"
 	"github.com/bryanl/woowoo/pkg/docparser"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
@@ -33,7 +34,7 @@ type Conversion struct {
 
 // NewConversion creates a Conversion.
 func NewConversion(source, k8sLib string) (*Conversion, error) {
-	root, err := ImportJsonnet(k8sLib)
+	root, err := jsonnetutil.Import(k8sLib)
 	if err != nil {
 		return nil, errors.Wrap(err, "read ksonnet lib")
 	}
@@ -68,7 +69,7 @@ func (c *Conversion) Process() error {
 			return errors.Wrap(err, "generate jsonnet")
 		}
 
-		if err := doc.UpdateParams(&fakeUpdater{}); err != nil {
+		if err := doc.UpdateParams(c.updateParams); err != nil {
 			return errors.Wrap(err, "update params")
 		}
 
@@ -78,10 +79,14 @@ func (c *Conversion) Process() error {
 	return nil
 }
 
-type fakeUpdater struct{}
+func (c *Conversion) updateParams(componentName string, values map[string]interface{}) error {
+	update, err := params.Update(componentName, paramsSource, values)
+	if err != nil {
+		return errors.Wrap(err, "update params")
+	}
 
-func (fu *fakeUpdater) Update(componentName string, params map[string]interface{}) error {
-	spew.Dump("---", componentName, params)
+	fmt.Println(update)
+
 	return nil
 }
 
@@ -168,3 +173,23 @@ func generateComponentName(inputFileName string) string {
 	componentFile := strings.TrimSuffix(inputFileName, filepath.Ext(inputFileName))
 	return strcase.ToLowerCamel(componentFile)
 }
+
+var (
+	paramsSource = `{
+  global: {
+  },
+  // Component-level parameters, defined initially from 'ks prototype use ...'
+  // Each object below should correspond to a component in the components/ directory
+  components: {
+    "guestbook-ui": {
+      containerPort: 80,
+      image: "gcr.io/heptio-images/ks-guestbook-demo:0.1",
+      name: "guestbook-ui",
+      replicas: 1,
+      servicePort: 80,
+      type: "ClusterIP",
+    },
+  },
+}
+	  `
+)
