@@ -190,35 +190,6 @@ var (
 	ignoredProps = []string{"mixin", "kind", "new", "mixinInstance"}
 )
 
-func (n *Node) FindFunction(name string) (string, error) {
-	var hasSetter, hasSetterMixin, hasType bool
-
-	name2 := strings.Title(name)
-
-	for _, f := range n.obj.Fields {
-		id := string(*f.Id)
-		if fmt.Sprintf("with%s", name2) == id {
-			hasSetter = true
-		}
-		if fmt.Sprintf("with%sMixin", name2) == id {
-			hasSetterMixin = true
-		}
-		if fmt.Sprintf("%sType", name) == id {
-			hasType = true
-		}
-	}
-
-	if hasSetter && hasSetterMixin && hasType {
-		return fmt.Sprintf("with%s", name2), nil
-	} else if hasSetter && hasSetterMixin {
-		return fmt.Sprintf("with%s", name2), nil
-	} else if hasType {
-		return "", errors.New("what to do with mixins")
-	}
-
-	return fmt.Sprintf("with%s", name2), nil
-}
-
 func stringInSlice(s string, sl []string) bool {
 	for i := range sl {
 		if sl[i] == s {
@@ -227,19 +198,6 @@ func stringInSlice(s string, sl []string) bool {
 	}
 
 	return false
-}
-
-type PropertyType int
-
-const (
-	PropertyTypeItem PropertyType = iota
-	PropertyTypeObject
-	PropertyTypeArray
-)
-
-type Property struct {
-	Type PropertyType
-	Node *Node
 }
 
 // ItemType is the type of item.
