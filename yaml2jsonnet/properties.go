@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -95,16 +94,6 @@ func iterateMap(ch chan PropertyPath, base []string, m map[interface{}]interface
 	for i := range keys {
 		name := keys[i].(string)
 
-		// if v, ok := m[name].(map[interface{}]interface{}) {
-		// 	newBase := append(localBase, name)
-		// 	iterateMap(ch, newBase, v)
-		// 	continue
-		// }
-
-		// ch <- PropertyPath{
-		// 	Path: append(localBase, name)
-		// }
-
 		switch t := m[name].(type) {
 		default:
 			ch <- PropertyPath{
@@ -157,8 +146,6 @@ func valueSearch(path []string, m map[interface{}]interface{}) (interface{}, err
 		}
 
 	}
-
-	spew.Dump(m)
 
 	return nil, errors.Errorf("unable to find %s", strings.Join(path, "."))
 }
