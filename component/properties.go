@@ -1,7 +1,6 @@
-package yaml2jsonnet
+package component
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -32,7 +31,8 @@ func (p Properties) Name() (string, error) {
 
 	v, ok := metadata["name"]
 	if ok {
-		name, ok := v.(string)
+		var name string
+		name, ok = v.(string)
 		if !ok {
 			return "", errors.New("name was not a string")
 		}
@@ -134,7 +134,7 @@ func valueSearch(path []string, m map[interface{}]interface{}) (interface{}, err
 
 			switch t := m[name].(type) {
 			default:
-				panic(fmt.Sprintf("not sure what to do with %T", t))
+				return nil, errors.Errorf("can't handle type %T", t)
 			case map[interface{}]interface{}:
 				if len(path) == 1 {
 					return t, nil

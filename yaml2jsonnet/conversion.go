@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,9 +14,7 @@ import (
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/node"
 	"github.com/bryanl/woowoo/params"
-	"github.com/bryanl/woowoo/pkg/docparser"
 	"github.com/google/go-jsonnet/ast"
-	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/pkg/errors"
 )
 
@@ -88,35 +85,6 @@ func (c *Conversion) updateParams(componentName string, values map[string]interf
 	fmt.Println(update)
 
 	return nil
-}
-
-// ImportJsonnet imports jsonnet from a path.
-func ImportJsonnet(fileName string) (*astext.Object, error) {
-	if fileName == "" {
-		return nil, errors.New("filename was blank")
-	}
-
-	b, err := ioutil.ReadFile(fileName)
-	if err != nil {
-		return nil, errors.Wrap(err, "read lib")
-	}
-
-	tokens, err := docparser.Lex(fileName, string(b))
-	if err != nil {
-		return nil, errors.Wrap(err, "lex lib")
-	}
-
-	node, err := docparser.Parse(tokens)
-	if err != nil {
-		return nil, errors.Wrap(err, "parse lib")
-	}
-
-	root, ok := node.(*astext.Object)
-	if !ok {
-		return nil, errors.New("root was not an object")
-	}
-
-	return root, nil
 }
 
 func importSource(source string) ([]io.Reader, error) {

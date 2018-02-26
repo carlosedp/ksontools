@@ -1,4 +1,4 @@
-package yaml2jsonnet
+package component
 
 import (
 	"os"
@@ -7,8 +7,63 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProperties_Paths(t *testing.T) {
+func TestProperties_Name(t *testing.T) {
+	cases := []struct {
+		name     string
+		expected string
+		isErr    bool
+	}{
+		{
+			name:     "testdata/deployment.yaml",
+			expected: "nginx-deployment",
+		},
+		{
+			name:  "testdata/invalid.yaml",
+			isErr: true,
+		},
+		{
+			name:  "testdata/broken-metadata1.yaml",
+			isErr: true,
+		},
+		{
+			name:  "testdata/broken-metadata2.yaml",
+			isErr: true,
+		},
+		{
+			name:     "testdata/generate-name.yaml",
+			expected: "generate-name",
+		},
+		{
+			name:  "testdata/broken-gen-name.yaml",
+			isErr: true,
+		},
+		{
+			name:  "testdata/no-name.yaml",
+			isErr: true,
+		},
+	}
 
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := os.Open(tc.name)
+			require.NoError(t, err)
+			defer f.Close()
+
+			_, props, err := ImportYaml(f)
+			require.NoError(t, err)
+
+			got, err := props.Name()
+			if tc.isErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expected, got)
+			}
+		})
+	}
+}
+
+func TestProperties_Paths(t *testing.T) {
 	var (
 		deploymentBase = []string{"apps", "v1beta2", "deployment"}
 		crdBase        = []string{"apiextensions", "v1beta1", "customResourceDefinition"}
@@ -52,17 +107,15 @@ func TestProperties_Paths(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			ts, props, err := importYaml(f)
+			ts, props, err := ImportYaml(f)
 			require.NoError(t, err)
 
-			gvk, err := ts.GVK()
-			require.NoError(t, err)
+			gvk := ts.GVK()
 
 			got := props.Paths(gvk)
 			require.Equal(t, tc.expected, got)
 		})
 	}
-
 }
 
 func TestProperties_Value(t *testing.T) {
@@ -72,7 +125,7 @@ func TestProperties_Value(t *testing.T) {
 
 	props := Properties{}
 
-	_, props, err = importYaml(f)
+	_, props, err = ImportYaml(f)
 	require.NoError(t, err)
 
 	cases := []struct {

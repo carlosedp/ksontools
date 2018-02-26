@@ -8,23 +8,24 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/bryanl/woowoo/component"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/iancoleman/strcase"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/sirupsen/logrus"
 
-	"github.com/go-yaml/yaml"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
 )
 
 // Document creates a ksonnet document for describing a resource.
 type Document struct {
-	Properties        Properties
-	GVK               GVK
+	Properties        component.Properties
+	GVK               component.GVK
 	root              *astext.Object
-	resolvedPaths     map[string]documentValues
+	resolvedPaths     map[string]component.Values
 	buildConstructors map[string][]ctorArgument
 	componentName     string
 }
@@ -41,24 +42,24 @@ func NewDocument(componentName string, r io.Reader, root ast.Node) (*Document, e
 		componentName: componentName,
 	}
 
-	ts, props, err := importYaml(r)
+	ts, props, err := component.ImportYaml(r)
 	if err != nil {
 		return nil, err
 	}
 
 	doc.Properties = props
 
-	gvk, err := ts.GVK()
-	if err != nil {
-		return nil, errors.Wrap(err, "type spec is invalid")
-	}
+	gvk := ts.GVK()
 
 	doc.GVK = gvk
 
-	resolvedPaths, err := doc.generateResolvedPaths()
+	ve := component.NewValueExtractor(obj)
+	resolvedPaths, err := ve.Extract(gvk, props)
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve document paths")
 	}
+
+	spew.Dump(resolvedPaths)
 
 	doc.resolvedPaths = resolvedPaths
 
@@ -70,27 +71,6 @@ func NewDocument(componentName string, r io.Reader, root ast.Node) (*Document, e
 	doc.buildConstructors = ctors
 
 	return doc, nil
-}
-
-func importYaml(r io.Reader) (TypeSpec, Properties, error) {
-	var m map[interface{}]interface{}
-	if err := yaml.NewDecoder(r).Decode(&m); err != nil {
-		return nil, nil, errors.Wrap(err, "decode yaml")
-	}
-
-	ts := TypeSpec{}
-	props := Properties{}
-
-	for k, v := range m {
-		switch k {
-		case "kind", "apiVersion":
-			ts[k.(string)] = v.(string)
-		default:
-			props[k] = v
-		}
-	}
-
-	return ts, props, nil
 }
 
 type localBlock struct {
@@ -165,7 +145,7 @@ func (d *Document) genParams() map[string]interface{} {
 	m := make(map[string]interface{})
 	for ns, dv := range d.resolvedPaths {
 		name := paramName(ns)
-		m[name] = dv.value
+		m[name] = dv.Value
 	}
 
 	return m
@@ -336,11 +316,6 @@ func (d *Document) render(root ast.Node) (string, error) {
 	return buf.String(), nil
 }
 
-type documentValues struct {
-	setter string
-	value  interface{}
-}
-
 func (d *Document) paths() []string {
 	var names []string
 	for ns := range d.buildConstructors {
@@ -349,56 +324,4 @@ func (d *Document) paths() []string {
 	sort.Strings(names)
 
 	return names
-}
-
-func (d *Document) generateResolvedPaths() (map[string]documentValues, error) {
-	nn := NewNode("root", d.root)
-
-	m := make(map[string]documentValues)
-	cache := make(map[string]bool)
-
-	paths := d.Properties.Paths(d.GVK)
-	for _, path := range paths {
-		item, err := nn.Search2(path.Path...)
-		if err != nil {
-			continue
-		}
-
-		var manifestPath []string
-		var found bool
-		for _, p := range item.Path {
-			if p == d.GVK.Kind {
-				found = true
-				continue
-			}
-
-			if !found {
-				continue
-			}
-
-			manifestPath = append(manifestPath, p)
-		}
-
-		cachedPath := strings.Join(manifestPath, ".")
-		if _, ok := cache[cachedPath]; ok {
-			continue
-		}
-
-		cache[cachedPath] = true
-
-		v, err := d.Properties.Value(manifestPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "retrieve values for %s", strings.Join(manifestPath, "."))
-		}
-
-		dv := documentValues{
-			setter: item.Name,
-			value:  v,
-		}
-
-		p := strings.Join(item.Path, ".")
-		m[p] = dv
-	}
-
-	return m, nil
 }

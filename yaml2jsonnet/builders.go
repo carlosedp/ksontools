@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bryanl/woowoo/component"
 	"github.com/pkg/errors"
 )
 
@@ -13,12 +14,12 @@ type ctorArgument struct {
 	paramValue interface{}
 }
 
-func buildConstructors(m map[string]documentValues) (map[string][]ctorArgument, error) {
+func buildConstructors(m map[string]component.Values) (map[string][]ctorArgument, error) {
 
 	groups := make(map[string][]ctorArgument)
 
 	for paramPath, dv := range m {
-		ns, setter, err := parseSetterNamespace(dv.setter)
+		ns, setter, err := parseSetterNamespace(dv.Setter)
 		if err != nil {
 			return nil, errors.Wrap(err, "parse setter namespace")
 		}
@@ -30,7 +31,7 @@ func buildConstructors(m map[string]documentValues) (map[string][]ctorArgument, 
 		ca := ctorArgument{
 			setter:     setter,
 			paramName:  paramName(paramPath),
-			paramValue: dv.value,
+			paramValue: dv.Value,
 		}
 
 		groups[ns] = append(groups[ns], ca)
