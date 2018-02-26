@@ -42,7 +42,8 @@ type Object struct {
 
 var _ Noder = (*Object)(nil)
 
-// KVFromMap creates a shallow object using a map.
+// KVFromMap creates a object using a map.
+// nolint: gocyclo
 func KVFromMap(m map[string]interface{}) (*Object, error) {
 	if m == nil {
 		return nil, errors.New("map is nil")
@@ -58,14 +59,12 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 
 	for _, name := range names {
 		switch t := m[name].(type) {
-		case string:
-			o.Set(InheritedKey(name), NewStringDouble(t))
-		case float64:
-			o.Set(InheritedKey(name), NewFloat(t))
-		case int:
-			o.Set(InheritedKey(name), NewInt(t))
-		case bool:
-			o.Set(InheritedKey(name), NewBoolean(t))
+		case string, float64, int, bool:
+			val, err := convertValueToNoder(t)
+			if err != nil {
+				return nil, err
+			}
+			o.Set(InheritedKey(name), val)
 		case []interface{}:
 			var elements []Noder
 			for _, val := range t {
@@ -79,20 +78,15 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 			array := NewArray(elements)
 			o.Set(InheritedKey(name), array)
 		case map[interface{}]interface{}:
-			child := NewObject()
-			for k, v := range t {
-				s, ok := k.(string)
-				if !ok {
-					return nil, errors.New("map key is not a string")
-				}
-
-				noder, err := convertValueToNoder(v)
-				if err != nil {
-					return nil, err
-				}
-				child.Set(InheritedKey(s), noder)
-
+			newMap, err := convertMapToStringKey(t)
+			if err != nil {
+				return nil, err
 			}
+			child, err := KVFromMap(newMap)
+			if err != nil {
+				return nil, err
+			}
+
 			o.Set(InheritedKey(name), child)
 		default:
 			return nil, errors.Errorf("unsupported type %T", t)
@@ -100,6 +94,20 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 	}
 
 	return o, nil
+}
+
+func convertMapToStringKey(m map[interface{}]interface{}) (map[string]interface{}, error) {
+	newMap := make(map[string]interface{})
+	for k := range m {
+		s, ok := k.(string)
+		if !ok {
+			return nil, errors.New("map key is not a string")
+		}
+
+		newMap[s] = m[s]
+	}
+
+	return newMap, nil
 }
 
 func convertValueToNoder(val interface{}) (Noder, error) {
@@ -163,8 +171,9 @@ func (o *Object) Get(keyName string) Noder {
 // Keys returns a slice of keys in the object.
 func (o *Object) Keys() []Key {
 	var keys []Key
-	for _, key := range o.keys {
-		keys = append(keys, key)
+
+	for _, name := range o.keyList {
+		keys = append(keys, o.keys[name])
 	}
 
 	return keys

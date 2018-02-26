@@ -42,31 +42,6 @@ func parsePaths(apiSpec *spec.Swagger) (map[string]Component, error) {
 			}
 
 		}
-
-		// component, exists, err := pathExtensionComponent(pathItem.Post.Extensions)
-		// if err != nil {
-		// 	return nil, errors.Wrapf(err, "extract component for %s", ref)
-		// }
-
-		// if exists {
-		// 	m[ref] = component
-		// }
-
-		// for x, v := range pathItem.Post.Extensions {
-		// 	if x == extensionGroupVersionKind {
-		// 		gvk, ok := v.(map[string]interface{})
-		// 		if !ok {
-		// 			return nil, errors.Errorf("gvk for %s was invalid", ref)
-		// 		}
-
-		// 		component := Component{
-		// 			Group:   gvk["group"].(string),
-		// 			Version: gvk["version"].(string),
-		// 			Kind:    gvk["kind"].(string),
-		// 		}
-		// 		m[ref] = component
-		// 	}
-		// }
 	}
 
 	return m, nil
