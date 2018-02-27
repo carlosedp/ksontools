@@ -98,12 +98,10 @@ func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 			return nil, err
 		}
 
-		newObject, err := mergeMaps(objects[i].Object, m, nil)
+		err = mergeMaps(objects[i].Object, m, nil)
 		if err != nil {
 			return nil, err
 		}
-
-		objects[i].Object = newObject
 	}
 
 	return objects, nil
@@ -233,28 +231,27 @@ func mapToPaths(m map[string]interface{}, lookup map[string]bool, parent []strin
 	return paths
 }
 
-func mergeMaps(m1 map[string]interface{}, m2 map[string]interface{}, path []string) (map[string]interface{}, error) {
+func mergeMaps(m1 map[string]interface{}, m2 map[string]interface{}, path []string) error {
 	for k := range m2 {
 		_, ok := m1[k]
 		if ok {
 			v1, isMap1 := m1[k].(map[string]interface{})
 			v2, isMap2 := m2[k].(map[string]interface{})
 			if isMap1 && isMap2 {
-				child, err := mergeMaps(v1, v2, append(path, k))
+				err := mergeMaps(v1, v2, append(path, k))
 				if err != nil {
-					return nil, err
+					return err
 				}
-				m1[k] = child
 			} else if reflect.TypeOf(v1) == reflect.TypeOf(v2) {
 				m1[k] = m2[k]
 			} else {
 				errorPath := append(path, k)
-				return nil, fmt.Errorf("not same types at %s", strings.Join(errorPath, "."))
+				return fmt.Errorf("not same types at %s", strings.Join(errorPath, "."))
 			}
 		} else {
 			m1[k] = m2[k]
 		}
 	}
 
-	return m1, nil
+	return nil
 }

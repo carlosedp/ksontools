@@ -219,9 +219,9 @@ func Test_mergeMaps(t *testing.T) {
 		},
 	}
 
-	got, err := mergeMaps(m1, m2, nil)
+	err := mergeMaps(m1, m2, nil)
 	require.NoError(t, err)
-	require.Equal(t, expected, got)
+	require.Equal(t, expected, m1)
 }
 
 func stageFile(t *testing.T, fs afero.Fs, src, dest string) {
