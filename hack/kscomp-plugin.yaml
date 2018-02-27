@@ -1,0 +1,5 @@
+name: protocomp
+version: "0.1.0"
+description: |-
+  component prototype
+command: "$KS_PLUGIN_DIR/kscomp"
