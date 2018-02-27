@@ -16,10 +16,10 @@ package cmd
 
 import (
 	"bytes"
-	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/bryanl/woowoo/ksplugin"
 	kscomponent "github.com/ksonnet/ksonnet/component"
 	ksparam "github.com/ksonnet/ksonnet/metadata/params"
 	"github.com/ksonnet/ksonnet/prototype"
@@ -37,9 +37,9 @@ var importCmd = &cobra.Command{
 	Short: "Import manifest",
 	Long:  `Import manifest`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ksAppDir := os.Getenv("KS_APP_DIR")
-		if ksAppDir == "" {
-			logrus.Fatal("cannot find ks application directory")
+		pluginEnv, err := ksplugin.Read()
+		if err != nil {
+			logrus.Fatal(err)
 		}
 
 		fileName := viper.GetString("f")
@@ -71,7 +71,7 @@ var importCmd = &cobra.Command{
 
 		params := ksparam.Params{}
 
-		_, err = kscomponent.Create(fs, ksAppDir, name.String(), string(contents), params, templateType)
+		_, err = kscomponent.Create(fs, pluginEnv.AppDir, name.String(), string(contents), params, templateType)
 		if err != nil {
 			logrus.WithError(err).Fatal("create component")
 		}

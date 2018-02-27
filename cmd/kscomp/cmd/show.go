@@ -15,9 +15,15 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
+	"github.com/bryanl/woowoo/component"
+	"github.com/bryanl/woowoo/ksplugin"
+	"github.com/bryanl/woowoo/ksutil"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // showCmd represents the show command
@@ -26,12 +32,43 @@ var showCmd = &cobra.Command{
 	Short: "show a component",
 	Long:  `show a component`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("show called")
+		pluginEnv, err := ksplugin.Read()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		env := viper.GetString("env")
+
+		app := ksutil.NewApp(fs, pluginEnv.AppDir)
+		namespaces, err := component.NamespacesFromEnv(fs, app, pluginEnv.AppDir, env)
+		if err != nil {
+			logrus.WithError(err).Fatal("find namespaces")
+		}
+
+		var objects []*unstructured.Unstructured
+		for _, ns := range namespaces {
+			members, err := ns.Components()
+			if err != nil {
+				logrus.WithError(err).Fatal("find components")
+			}
+			for _, c := range members {
+				o, err := c.Objects()
+				if err != nil {
+					logrus.WithError(err).Fatal("get objects")
+				}
+				objects = append(objects, o...)
+			}
+		}
+
+		ksutil.Fprint(os.Stdout, objects, "yaml")
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(showCmd)
+
+	showCmd.Flags().String("env", "default", "Environment")
+	viper.BindPFlag("env", showCmd.Flags().Lookup("env"))
 
 	// Here you will define your flags and configuration settings.
 

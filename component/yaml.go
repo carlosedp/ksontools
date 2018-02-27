@@ -60,6 +60,11 @@ type YAML struct {
 
 var _ Component = (*YAML)(nil)
 
+// NewYAML creates an instance of YAML.
+func NewYAML(fs afero.Fs, source string) *YAML {
+	return &YAML{fs: fs, source: source}
+}
+
 // Objects converts YAML to a slice apimachinery Unstructured objects. Params for a YAML
 // based component are keyed like, `name-id`, where `name` is the file name sans the extension,
 // and the id is the position within the file (starting at 0). Params are named this way
