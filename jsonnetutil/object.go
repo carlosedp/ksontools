@@ -66,7 +66,7 @@ func UpdateObject(object *astext.Object, path []string, update ast.Node) error {
 	}
 
 	for i := range child.Fields {
-		id, err := fieldID(child.Fields[i])
+		id, err := FieldID(child.Fields[i])
 		if err != nil {
 			return err
 		}
@@ -87,7 +87,7 @@ func FindObject(object *astext.Object, path []string) (*astext.Object, error) {
 	}
 
 	for i := range object.Fields {
-		id, err := fieldID(object.Fields[i])
+		id, err := FieldID(object.Fields[i])
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +109,8 @@ func FindObject(object *astext.Object, path []string) (*astext.Object, error) {
 	return nil, errors.New("path was not found")
 }
 
-func fieldID(field astext.ObjectField) (string, error) {
+// FieldID returns the id for an object field.
+func FieldID(field astext.ObjectField) (string, error) {
 	if field.Expr1 != nil {
 		lf, ok := field.Expr1.(*ast.LiteralString)
 		if !ok {
