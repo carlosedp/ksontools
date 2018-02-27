@@ -60,7 +60,10 @@ type YAML struct {
 
 var _ Component = (*YAML)(nil)
 
-// Objects converts YAML to a slice apimachinery Unstructured objects.
+// Objects converts YAML to a slice apimachinery Unstructured objects. Params for a YAML
+// based component are keyed like, `name-id`, where `name` is the file name sans the extension,
+// and the id is the position within the file (starting at 0). Params are named this way
+// because a YAML file can contain more than one object.
 func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
 	isParams, err := y.hasParams()
 	if err != nil {
@@ -195,7 +198,7 @@ type paramPath struct {
 	value interface{}
 }
 
-func mapToPaths(m map[string]interface{}, parent []string) []paramPath {
+func mapToPaths(m map[string]interface{}, lookup map[string]bool, parent []string) []paramPath {
 	paths := make([]paramPath, 0)
 
 	for k, v := range m {
@@ -207,20 +210,14 @@ func mapToPaths(m map[string]interface{}, parent []string) []paramPath {
 			paths = append(paths, pp)
 
 		case map[string]interface{}:
-			children := mapToPaths(t, cur)
+			children := mapToPaths(t, lookup, cur)
 
-			var isNested bool
-			for _, child := range children {
-				if _, ok := child.value.(map[string]interface{}); ok {
-					isNested = true
-				}
-			}
-
-			if isNested {
-				paths = append(paths, children...)
-			} else {
+			route := strings.Join(cur, ".")
+			if _, ok := lookup[route]; ok {
 				pp := paramPath{path: cur, value: v}
 				paths = append(paths, pp)
+			} else {
+				paths = append(paths, children...)
 			}
 
 		}

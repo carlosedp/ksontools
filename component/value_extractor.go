@@ -10,6 +10,7 @@ import (
 
 // Values are values extracted from a manifest.
 type Values struct {
+	Lookup []string
 	Setter string
 	Value  interface{}
 }
@@ -65,12 +66,18 @@ func (ve *ValueExtractor) Extract(gvk GVK, props Properties) (map[string]Values,
 			return nil, errors.Wrapf(err, "retrieve values for %s", strings.Join(manifestPath, "."))
 		}
 
+		lookupPath := manifestPath
+		if manifestPath[0] == "mixin" {
+			lookupPath = manifestPath[1:]
+		}
+
+		p := strings.Join(item.Path, ".")
 		dv := Values{
+			Lookup: lookupPath,
 			Setter: item.Name,
 			Value:  v,
 		}
 
-		p := strings.Join(item.Path, ".")
 		m[p] = dv
 	}
 

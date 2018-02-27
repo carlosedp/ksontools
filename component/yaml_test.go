@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -138,8 +137,6 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 		},
 	}
 
-	spew.Dump(list)
-
 	require.Equal(t, expected, list)
 }
 
@@ -153,7 +150,13 @@ func Test_mapToPaths(t *testing.T) {
 		},
 	}
 
-	got := mapToPaths(m, nil)
+	lookup := map[string]bool{
+		// "metadata":        true,
+		"metadata.name":   true,
+		"metadata.labels": true,
+	}
+
+	got := mapToPaths(m, lookup, nil)
 
 	expected := []paramPath{
 		{path: []string{"metadata", "labels"}, value: map[string]interface{}{"label1": "label1"}},

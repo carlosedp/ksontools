@@ -42,11 +42,13 @@ func TestValueExtractor_Extract(t *testing.T) {
 
 	ve := NewValueExtractor(node)
 	got, err := ve.Extract(gvk, props)
+	require.NoError(t, err)
 
 	crd := "apiextensions.v1beta1.customResourceDefinition."
 
 	expected := map[string]Values{
 		crd + "mixin.metadata.labels": Values{
+			Lookup: []string{"metadata", "labels"},
 			Setter: crd + "mixin.metadata.withLabels",
 			Value: map[interface{}]interface{}{
 				"app":      "cert-manager",
@@ -56,26 +58,32 @@ func TestValueExtractor_Extract(t *testing.T) {
 			},
 		},
 		crd + "mixin.metadata.name": Values{
+			Lookup: []string{"metadata", "name"},
 			Setter: crd + "mixin.metadata.withName",
 			Value:  "certificates.certmanager.k8s.io",
 		},
 		crd + "mixin.spec.group": Values{
+			Lookup: []string{"spec", "group"},
 			Setter: crd + "mixin.spec.withGroup",
 			Value:  "certmanager.k8s.io",
 		},
 		crd + "mixin.spec.names.kind": Values{
+			Lookup: []string{"spec", "names", "kind"},
 			Setter: crd + "mixin.spec.names.withKind",
 			Value:  "Certificate",
 		},
 		crd + "mixin.spec.names.plural": Values{
+			Lookup: []string{"spec", "names", "plural"},
 			Setter: crd + "mixin.spec.names.withPlural",
 			Value:  "certificates",
 		},
 		crd + "mixin.spec.scope": Values{
+			Lookup: []string{"spec", "scope"},
 			Setter: crd + "mixin.spec.withScope",
 			Value:  "Namespaced",
 		},
 		crd + "mixin.spec.version": Values{
+			Lookup: []string{"spec", "version"},
 			Setter: crd + "mixin.spec.withVersion",
 			Value:  "v1alpha1",
 		},
