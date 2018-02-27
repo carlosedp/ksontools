@@ -1,7 +1,6 @@
 package component
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -109,8 +108,6 @@ func (n *Namespace) ComponentPaths() ([]string, error) {
 // Components returns the components in a namespace.
 func (n *Namespace) Components() ([]Component, error) {
 	dir := filepath.Join(n.root, componentsRoot) + "/"
-
-	fmt.Println("looking in ", dir)
 
 	fis, err := afero.ReadDir(n.fs, dir)
 	if err != nil {
