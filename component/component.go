@@ -12,9 +12,16 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// SetParamOptions is options for setting a parameter.
+type SetParamOptions struct {
+	Index int
+}
+
 // Component is a ksonnet Component interface.
 type Component interface {
+	Name() string
 	Objects() ([]*unstructured.Unstructured, error)
+	SetParam(path []string, value interface{}, options SetParamOptions) error
 }
 
 const (
@@ -68,6 +75,23 @@ type Namespace struct {
 	fs   afero.Fs
 }
 
+// ExtractComponent extracts a component from a path.
+func ExtractComponent(fs afero.Fs, root, path string) (Component, error) {
+	ns, componentName := ExtractNamespacedComponent(fs, root, path)
+	members, err := ns.Components()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, member := range members {
+		if componentName == member.Name() {
+			return member, nil
+		}
+	}
+
+	return nil, errors.Errorf("unable to find component %q", componentName)
+}
+
 // ExtractNamespacedComponent extracts a namespace and a component from a path.
 func ExtractNamespacedComponent(fs afero.Fs, root, path string) (Namespace, string) {
 	path, component := filepath.Split(path)
@@ -79,30 +103,6 @@ func ExtractNamespacedComponent(fs afero.Fs, root, path string) (Namespace, stri
 // ParamsPath generates the path to params.libsonnet for a namespace.
 func (n *Namespace) ParamsPath() string {
 	return filepath.Join(n.Dir(), paramsFile)
-}
-
-// ComponentPaths are the absolute paths to all the components in a namespace.
-func (n *Namespace) ComponentPaths() ([]string, error) {
-	dir := n.Dir()
-	fis, err := afero.ReadDir(n.fs, dir)
-	if err != nil {
-		return nil, errors.Wrap(err, "read component dir")
-	}
-
-	var paths []string
-	for _, fi := range fis {
-		if fi.IsDir() {
-			continue
-		}
-
-		if strings.HasSuffix(fi.Name(), ".jsonnet") {
-			paths = append(paths, filepath.Join(dir, fi.Name()))
-		}
-	}
-
-	sort.Strings(paths)
-
-	return paths, nil
 }
 
 // Components returns the components in a namespace.
@@ -123,7 +123,7 @@ func (n *Namespace) Components() ([]Component, error) {
 		switch ext {
 		// TODO: these should be constants
 		case ".yaml":
-			component := NewYAML(n.fs, path)
+			component := NewYAML(n.fs, path, n.ParamsPath())
 			components = append(components, component)
 		}
 	}

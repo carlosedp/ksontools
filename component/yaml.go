@@ -54,15 +54,21 @@ func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 
 // YAML represents a YAML component.
 type YAML struct {
-	source string
-	fs     afero.Fs
+	source     string
+	fs         afero.Fs
+	paramsPath string
 }
 
 var _ Component = (*YAML)(nil)
 
 // NewYAML creates an instance of YAML.
-func NewYAML(fs afero.Fs, source string) *YAML {
-	return &YAML{fs: fs, source: source}
+func NewYAML(fs afero.Fs, source, paramsPath string) *YAML {
+	return &YAML{fs: fs, source: source, paramsPath: paramsPath}
+}
+
+// Name is the component name.
+func (y *YAML) Name() string {
+	return y.componentName()
 }
 
 // Objects converts YAML to a slice apimachinery Unstructured objects. Params for a YAML
@@ -80,6 +86,63 @@ func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
 	}
 
 	return y.raw()
+}
+
+// SetParam set parameter for a component.
+func (y *YAML) SetParam(path []string, value interface{}, options SetParamOptions) error {
+	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
+	paramsData, err := y.readParams()
+	if err != nil {
+		return err
+	}
+
+	props, err := params.ToMap(entry, paramsData)
+	if err != nil {
+		props = make(map[string]interface{})
+	}
+
+	changes := make(map[string]interface{})
+	cur := changes
+
+	for i, k := range path {
+		if i == len(path)-1 {
+			cur[k] = value
+		} else {
+			if _, ok := cur[k]; !ok {
+				m := make(map[string]interface{})
+				cur[k] = m
+				cur = m
+			}
+		}
+	}
+
+	if err = mergeMaps(props, changes, nil); err != nil {
+		return err
+	}
+
+	updatedParams, err := params.Update(entry, paramsData, changes)
+	if err != nil {
+		return err
+	}
+
+	if err = y.writeParams(updatedParams); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (y *YAML) readParams() (string, error) {
+	b, err := afero.ReadFile(y.fs, y.paramsPath)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
+}
+
+func (y *YAML) writeParams(src string) error {
+	return afero.WriteFile(y.fs, y.paramsPath, []byte(src), 0644)
 }
 
 func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {

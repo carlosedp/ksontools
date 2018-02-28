@@ -1,7 +1,8 @@
 package jsonnetutil
 
 import (
-	"strings"
+	"fmt"
+	"regexp"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
@@ -9,75 +10,103 @@ import (
 	"github.com/pkg/errors"
 )
 
-// AddObject adds a node to an object graph.
-func AddObject(object *astext.Object, path []string, addition ast.Node) error {
+// Set sets an object key at path to a value.
+func Set(object *astext.Object, path []string, value ast.Node) error {
 	if len(path) == 0 {
-		return errors.New("search path was empty")
+		return errors.New("path was empty")
 	}
 
-	pathLen := len(path) - 1
-	item := path[pathLen]
-	search := path[:pathLen]
+	curObj := object
 
-	root, err := FindObject(object, search)
-	if err != nil {
-		return errors.Wrapf(err, "find object path %s", strings.Join(search, "."))
-	}
+	for i, k := range path {
+		field, err := findField(curObj, k)
+		if err != nil {
+			switch err.(type) {
+			default:
+				return err
+			case *unknownField:
+				field, err = createFieldWithName(k)
+				if err != nil {
+					return err
+				}
+				curObj.Fields = append(curObj.Fields, *field)
+			}
+		}
 
-	var parent *astext.Object
+		if i == len(path)-1 {
+			field, _ = findField(curObj, k)
+			if canUpdateObject(field.Expr2, value) {
+				return errors.New("can't set object to non object")
+			}
+			field.Expr2 = value
+			return nil
+		}
 
-	for i := range root.Fields {
-		parentID := ast.Identifier(search[len(search)-1])
-		if *root.Fields[i].Id == parentID {
-			parent = root.Fields[i].Expr2.(*astext.Object)
+		if field.Expr2 == nil {
+			curObj = &astext.Object{}
+			field.Expr2 = curObj
+		} else if obj, ok := field.Expr2.(*astext.Object); ok {
+			curObj = obj
+		} else {
+			return errors.Errorf("child is not an object at %q", k)
 		}
 	}
-
-	if parent == nil {
-		return errors.New("unable to add object")
-	}
-
-	f := astext.ObjectField{
-		ObjectField: ast.ObjectField{
-			Kind:  ast.ObjectFieldStr,
-			Hide:  ast.ObjectFieldInherit,
-			Expr1: nm.NewStringDouble(item).Node(),
-			Expr2: addition,
-		},
-	}
-
-	parent.Fields = append(parent.Fields, f)
 
 	return nil
 }
 
-// UpdateObject updates a location in an object with a new node.
-// Returns error if it can't find the path.
-func UpdateObject(object *astext.Object, path []string, update ast.Node) error {
-	if len(path) == 0 {
-		return errors.New("search path was empty")
+var (
+	// TODO: move this to nodemaker after 0.9 release
+	reFieldStr = regexp.MustCompile(`^[A-Za-z]+[A-Za-z0-9\-]*$`)
+	reField    = regexp.MustCompile(`^[A-Za-z]+[A-Za-z0-9]*$`)
+)
+
+func canUpdateObject(node1, node2 ast.Node) bool {
+	return isNodeObject(node1) && !isNodeObject(node2)
+}
+
+func isNodeObject(node ast.Node) bool {
+	_, ok := node.(*astext.Object)
+	return ok
+}
+
+func createFieldWithName(name string) (*astext.ObjectField, error) {
+	of := astext.ObjectField{ObjectField: ast.ObjectField{Hide: ast.ObjectFieldInherit}}
+	if reField.MatchString(name) {
+		id := ast.Identifier(name)
+		of.Kind = ast.ObjectFieldID
+		of.Id = &id
+	} else if reFieldStr.MatchString(name) {
+		of.Expr1 = nm.NewStringDouble(name).Node()
+		of.Kind = ast.ObjectFieldStr
+	} else {
+		return nil, errors.Errorf("invalid field name %q", name)
 	}
 
-	item := path[len(path)-1]
+	return &of, nil
+}
 
-	child, err := FindObject(object, path)
-	if err != nil {
-		return errors.New("object not found")
-	}
+type unknownField struct {
+	name string
+}
 
-	for i := range child.Fields {
-		id, err := FieldID(child.Fields[i])
+func (e *unknownField) Error() string {
+	return fmt.Sprintf("unable to find field %q", e.name)
+}
+
+func findField(object *astext.Object, id string) (*astext.ObjectField, error) {
+	for i := range object.Fields {
+		fieldID, err := FieldID(object.Fields[i])
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if id == item {
-			child.Fields[i].Expr2 = update
-			return nil
+		if id == fieldID {
+			return &object.Fields[i], nil
 		}
 	}
 
-	return errors.Errorf("unable to find field %s", item)
+	return nil, &unknownField{name: id}
 }
 
 // FindObject finds a path in an object.
@@ -94,6 +123,7 @@ func FindObject(object *astext.Object, path []string) (*astext.Object, error) {
 
 		if path[0] == id {
 			if len(path) == 1 {
+
 				return object, nil
 			}
 
@@ -118,6 +148,10 @@ func FieldID(field astext.ObjectField) (string, error) {
 		}
 
 		return lf.Value, nil
+	}
+
+	if field.Id == nil {
+		return "", errors.New("field does not have an ID")
 	}
 
 	return string(*field.Id), nil

@@ -2,6 +2,10 @@ package params
 
 import (
 	"bytes"
+	"encoding/json"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/google/go-jsonnet/ast"
@@ -25,17 +29,8 @@ func Update(componentName, src string, params map[string]interface{}) (string, e
 
 	path := []string{"components", componentName}
 
-	astParamsObject := paramsObject.Node().(*astext.Object)
-
-	_, err = jsonnetutil.FindObject(astParamsObject, path)
-	if err != nil {
-		if err := jsonnetutil.AddObject(obj, path, paramsObject.Node()); err != nil {
-			return "", errors.Wrapf(err, "update %s params", componentName)
-		}
-	} else {
-		if err := jsonnetutil.UpdateObject(obj, path, paramsObject.Node()); err != nil {
-			return "", errors.Wrapf(err, "update %s params", componentName)
-		}
+	if err := jsonnetutil.Set(obj, path, paramsObject.Node()); err != nil {
+		return "", errors.Wrapf(err, "update %s params", componentName)
 	}
 
 	var buf bytes.Buffer
@@ -70,6 +65,43 @@ func ToMap(componentName, src string) (map[string]interface{}, error) {
 	}
 
 	return paramsMap, nil
+}
+
+var (
+	reFloat = regexp.MustCompile(`^([0-9]+[.])?[0-9]$`)
+	reInt   = regexp.MustCompile(`^[1-9]{1}[0-9]?$`)
+	reArray = regexp.MustCompile(`^\[`)
+	reMap   = regexp.MustCompile(`^\{`)
+)
+
+// DecodeValue decodes a string to an interface value.
+func DecodeValue(s string) (interface{}, error) {
+	if s == "" {
+		return nil, errors.New("value was blank")
+	}
+
+	switch {
+	case reInt.MatchString(s):
+		return strconv.Atoi(s)
+	case reFloat.MatchString(s):
+		return strconv.ParseFloat(s, 64)
+	case strings.ToLower(s) == "true" || strings.ToLower(s) == "false":
+		return strconv.ParseBool(s)
+	case reArray.MatchString(s):
+		var array []interface{}
+		if err := json.Unmarshal([]byte(s), &array); err != nil {
+			return nil, errors.Errorf("array value is badly formatted: %s", s)
+		}
+		return array, nil
+	case reMap.MatchString(s):
+		var obj map[string]interface{}
+		if err := json.Unmarshal([]byte(s), &obj); err != nil {
+			return nil, errors.Errorf("map value is badly formatted: %s", s)
+		}
+		return obj, nil
+	default:
+		return s, nil
+	}
 }
 
 func findValues(obj *astext.Object) (map[string]interface{}, error) {

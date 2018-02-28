@@ -14,10 +14,7 @@ func TestYAML_Objects_no_params(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 
-	y := YAML{
-		fs:     fs,
-		source: "/certificate-crd.yaml",
-	}
+	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -58,10 +55,7 @@ func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := YAML{
-		fs:     fs,
-		source: "/certificate-crd.yaml",
-	}
+	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -102,10 +96,7 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
 
-	y := YAML{
-		fs:     fs,
-		source: "/certificate-crd.yaml",
-	}
+	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -140,6 +131,26 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 	require.Equal(t, expected, list)
 }
 
+func TestYAML_SetParam(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
+
+	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+
+	err := y.SetParam([]string{"spec", "version"}, "v2", SetParamOptions{})
+	require.NoError(t, err)
+
+	b, err := afero.ReadFile(fs, "/params.libsonnet")
+	require.NoError(t, err)
+
+	expected, err := ioutil.ReadFile("testdata/updated-yaml-params.libsonnet")
+	require.NoError(t, err)
+
+	require.Equal(t, string(expected), string(b))
+}
+
 func Test_mapToPaths(t *testing.T) {
 	m := map[string]interface{}{
 		"metadata": map[string]interface{}{
@@ -151,7 +162,6 @@ func Test_mapToPaths(t *testing.T) {
 	}
 
 	lookup := map[string]bool{
-		// "metadata":        true,
 		"metadata.name":   true,
 		"metadata.labels": true,
 	}

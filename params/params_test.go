@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func offTestUpdate(t *testing.T) {
+func TestUpdate(t *testing.T) {
 	paramsSource, err := ioutil.ReadFile("testdata/params.libsonnet")
 	require.NoError(t, err)
 
@@ -57,4 +57,94 @@ func TestToMap(t *testing.T) {
 	}
 
 	require.Equal(t, expected, got)
+}
+
+func TestDecodeValue(t *testing.T) {
+	cases := []struct {
+		name     string
+		val      string
+		expected interface{}
+		isErr    bool
+	}{
+		{
+			name:  "blank",
+			val:   "",
+			isErr: true,
+		},
+		{
+			name:     "float",
+			val:      "0.9",
+			expected: 0.9,
+		},
+		{
+			name:     "int",
+			val:      "9",
+			expected: 9,
+		},
+		{
+			name:     "bool true",
+			val:      "True",
+			expected: true,
+		},
+		{
+			name:     "bool false",
+			val:      "false",
+			expected: false,
+		},
+		{
+			name:     "array string",
+			val:      `["a", "b", "c"]`,
+			expected: []interface{}{"a", "b", "c"},
+		},
+		{
+			name:  "broken array",
+			val:   `["a", "b", "c"`,
+			isErr: true,
+		},
+		{
+			name:     "array float",
+			val:      `[1,2,3]`,
+			expected: []interface{}{1.0, 2.0, 3.0},
+		},
+		{
+			name: "map",
+			val:  `{"a": "1", "b": "2"}`,
+			expected: map[string]interface{}{
+				"a": "1",
+				"b": "2",
+			},
+		},
+		{
+			name:  "broken map",
+			val:   `{"a": "1", "b": "2"`,
+			isErr: true,
+		},
+		{
+			name: "nested map",
+			val:  `{"a": "1", "b": "2", "c": {"d": "3"}}`,
+			expected: map[string]interface{}{
+				"a": "1",
+				"b": "2",
+				"c": map[string]interface{}{
+					"d": "3",
+				},
+			},
+		},
+		{
+			name:     "string",
+			val:      "foo",
+			expected: "foo",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			v, err := DecodeValue(tc.val)
+			if tc.isErr {
+				require.Error(t, err)
+			} else {
+				require.Equal(t, tc.expected, v)
+			}
+		})
+	}
 }
