@@ -15,11 +15,8 @@
 package cmd
 
 import (
-	"strings"
-
-	"github.com/bryanl/woowoo/component"
-	"github.com/bryanl/woowoo/ksplugin"
-	"github.com/bryanl/woowoo/params"
+	"github.com/bryanl/woowoo/action"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -29,33 +26,21 @@ var paramSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "param set",
 	Long:  `param set`,
-	Run: func(cmd *cobra.Command, args []string) {
-		pluginEnv, err := ksplugin.Read()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 3 {
 			logrus.Fatal("set <component-name> <param-key> <param-value>")
 		}
 
-		componentName := args[0]
-
-		path := strings.Split(args[1], ".")
-
-		value, err := params.DecodeValue(args[2])
+		actionParamSet, err := action.NewParamSet(fs, args[0], args[1], args[2])
 		if err != nil {
-			logrus.WithError(err).Fatal("value is invalid")
+			return errors.Wrap(err, "unable to initialize param set action")
 		}
 
-		c, err := component.ExtractComponent(fs, pluginEnv.AppDir, componentName)
-		if err != nil {
-			logrus.WithError(err).Fatal("could not find component")
+		if err := actionParamSet.Run(); err != nil {
+			return errors.Wrap(err, "set param")
 		}
 
-		if err := c.SetParam(path, value, component.ParamOptions{}); err != nil {
-			logrus.WithError(err).Fatal("set param")
-		}
+		return nil
 	},
 }
 

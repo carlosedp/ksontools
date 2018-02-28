@@ -16,7 +16,7 @@ import (
 )
 
 // Update updates a params file with the params for a component.
-func Update(componentName, src string, params map[string]interface{}) (string, error) {
+func Update(path []string, src string, params map[string]interface{}) (string, error) {
 	obj, err := jsonnetutil.Parse("params.libsonnet", src)
 	if err != nil {
 		return "", errors.Wrap(err, "parse jsonnet")
@@ -27,10 +27,8 @@ func Update(componentName, src string, params map[string]interface{}) (string, e
 		return "", errors.Wrap(err, "convert params to object")
 	}
 
-	path := []string{"components", componentName}
-
 	if err := jsonnetutil.Set(obj, path, paramsObject.Node()); err != nil {
-		return "", errors.Wrapf(err, "update %s params", componentName)
+		return "", errors.Wrap(err, "update params")
 	}
 
 	var buf bytes.Buffer
@@ -42,20 +40,24 @@ func Update(componentName, src string, params map[string]interface{}) (string, e
 }
 
 // ToMap converts a component's params to a map.
-func ToMap(componentName, src string) (map[string]interface{}, error) {
+func ToMap(componentName, src, root string) (map[string]interface{}, error) {
 	obj, err := jsonnetutil.Parse("params.libsonnet", src)
 	if err != nil {
 		return nil, errors.Wrap(err, "parse jsonnet")
 	}
 
-	path := []string{"components"}
+	path := make([]string, 0)
+	if root != "" {
+		path = append(path, root)
+	}
+
 	if componentName != "" {
 		path = append(path, componentName)
 	}
 
 	child, err := jsonnetutil.FindObject(obj, path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "find child paths for %s", strings.Join(path, "."))
 	}
 
 	m, err := findValues(child)
@@ -64,7 +66,7 @@ func ToMap(componentName, src string) (map[string]interface{}, error) {
 	}
 
 	if componentName == "" {
-		return m["components"].(map[string]interface{}), nil
+		return m[root].(map[string]interface{}), nil
 	}
 
 	paramsMap, ok := m[componentName].(map[string]interface{})

@@ -15,15 +15,9 @@
 package cmd
 
 import (
-	"os"
-
-	"github.com/bryanl/woowoo/component"
-	"github.com/bryanl/woowoo/ksplugin"
-	"github.com/bryanl/woowoo/ksutil"
-	"github.com/sirupsen/logrus"
+	"github.com/bryanl/woowoo/action"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // showCmd represents the show command
@@ -31,36 +25,20 @@ var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "show a component",
 	Long:  `show a component`,
-	Run: func(cmd *cobra.Command, args []string) {
-		pluginEnv, err := ksplugin.Read()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		env := viper.GetString("env")
+		components := viper.GetStringSlice("component")
 
-		app := ksutil.NewApp(fs, pluginEnv.AppDir)
-		namespaces, err := component.NamespacesFromEnv(fs, app, pluginEnv.AppDir, env)
+		showAction, err := action.NewShow(fs, env, action.ShowWithComponents(components...))
 		if err != nil {
-			logrus.WithError(err).Fatal("find namespaces")
+			return err
 		}
 
-		var objects []*unstructured.Unstructured
-		for _, ns := range namespaces {
-			members, err := ns.Components()
-			if err != nil {
-				logrus.WithError(err).Fatal("find components")
-			}
-			for _, c := range members {
-				o, err := c.Objects()
-				if err != nil {
-					logrus.WithError(err).Fatal("get objects")
-				}
-				objects = append(objects, o...)
-			}
+		if err := showAction.Run(); err != nil {
+			return err
 		}
 
-		ksutil.Fprint(os.Stdout, objects, "yaml")
+		return nil
 	},
 }
 
@@ -70,13 +48,6 @@ func init() {
 	showCmd.Flags().String("env", "default", "Environment")
 	viper.BindPFlag("env", showCmd.Flags().Lookup("env"))
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// showCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// showCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	showCmd.Flags().StringSliceP("component", "c", nil, "Components to include")
+	viper.BindPFlag("component", showCmd.Flags().Lookup("component"))
 }

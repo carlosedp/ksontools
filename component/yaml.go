@@ -23,6 +23,10 @@ import (
 	amyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
+const (
+	paramsComponentRoot = "components"
+)
+
 // ImportYaml converts a reader containing YAML to a TypeSpec and Properties.
 func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 	// TODO: use apimachinery yaml util
@@ -83,7 +87,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 		return nil, err
 	}
 
-	props, err := params.ToMap("", paramsData)
+	props, err := params.ToMap("", paramsData, paramsComponentRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find components")
 	}
@@ -132,16 +136,16 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 // and the id is the position within the file (starting at 0). Params are named this way
 // because a YAML file can contain more than one object.
 func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
-	isParams, err := y.hasParams()
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to check for params")
-	}
+	// isParams, err := y.hasParams()
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "unable to check for params")
+	// }
 
-	if isParams {
-		return y.applyParams()
-	}
+	// if isParams {
+	return y.applyParams()
+	// }
 
-	return y.raw()
+	// return y.raw()
 }
 
 // SetParam set parameter for a component.
@@ -152,7 +156,7 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 		return err
 	}
 
-	props, err := params.ToMap(entry, paramsData)
+	props, err := params.ToMap(entry, paramsData, paramsComponentRoot)
 	if err != nil {
 		props = make(map[string]interface{})
 	}
@@ -176,7 +180,7 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 		return err
 	}
 
-	updatedParams, err := params.Update(entry, paramsData, changes)
+	updatedParams, err := params.Update([]string{paramsComponentRoot, entry}, paramsData, changes)
 	if err != nil {
 		return err
 	}
@@ -197,7 +201,7 @@ func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
 		return err
 	}
 
-	props, err := params.ToMap(entry, paramsData)
+	props, err := params.ToMap(entry, paramsData, paramsComponentRoot)
 	if err != nil {
 		return err
 	}
@@ -217,7 +221,7 @@ func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
 		}
 	}
 
-	updatedParams, err := params.Update(entry, paramsData, props)
+	updatedParams, err := params.Update([]string{paramsComponentRoot, entry}, paramsData, props)
 	if err != nil {
 		return err
 	}
@@ -257,15 +261,21 @@ func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 	}
 
 	for i := range objects {
-		cn := fmt.Sprintf("%s-%d", y.componentName(), i)
-		m, err := params.ToMap(cn, string(b))
-		if err != nil {
-			return nil, err
+		globalMap, err := params.ToMap("", string(b), "global")
+		if err == nil {
+			err = mergeMaps(objects[i].Object, globalMap, nil)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		err = mergeMaps(objects[i].Object, m, nil)
-		if err != nil {
-			return nil, err
+		cn := fmt.Sprintf("%s-%d", y.componentName(), i)
+		componentMap, err := params.ToMap(cn, string(b), paramsComponentRoot)
+		if err == nil {
+			err = mergeMaps(objects[i].Object, componentMap, nil)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -309,7 +319,7 @@ func (y *YAML) hasParams() (bool, error) {
 	}
 
 	componentPath := []string{
-		"components",
+		paramsComponentRoot,
 		fmt.Sprintf("%s-0", y.componentName()),
 	}
 	_, err = jsonnetutil.FindObject(paramsObj, componentPath)

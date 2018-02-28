@@ -23,7 +23,7 @@ func TestUpdate(t *testing.T) {
 		"type":          "NodePort",
 	}
 
-	got, err := Update(componentName, string(paramsSource), params)
+	got, err := Update([]string{"components", componentName}, string(paramsSource), params)
 	require.NoError(t, err)
 
 	expected, err := ioutil.ReadFile("testdata/updated.libsonnet")
@@ -39,7 +39,7 @@ func TestToMap(t *testing.T) {
 	b, err := ioutil.ReadFile("testdata/nested-params.libsonnet")
 	require.NoError(t, err)
 
-	got, err := ToMap("guestbook-ui", string(b))
+	got, err := ToMap("guestbook-ui", string(b), "components")
 	require.NoError(t, err)
 
 	expected := map[string]interface{}{

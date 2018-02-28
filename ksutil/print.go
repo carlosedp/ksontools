@@ -24,15 +24,7 @@ func Fprint(out io.Writer, objects []*unstructured.Unstructured, format string) 
 func printYAML(out io.Writer, objects []*unstructured.Unstructured) error {
 	for _, obj := range objects {
 		fmt.Fprintln(out, "---")
-		buf, err := json.Marshal(obj)
-		if err != nil {
-			return err
-		}
-		o := map[string]interface{}{}
-		if err = json.Unmarshal(buf, &o); err != nil {
-			return err
-		}
-		buf, err = yaml.Marshal(o)
+		buf, err := yaml.Marshal(obj.Object)
 		if err != nil {
 			return err
 		}

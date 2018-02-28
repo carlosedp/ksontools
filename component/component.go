@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bryanl/woowoo/params"
 	"github.com/ksonnet/ksonnet/metadata/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -148,6 +149,54 @@ func (n *Namespace) Components() ([]Component, error) {
 	return components, nil
 }
 
+// SetParam sets params for a namespace.
+func (n *Namespace) SetParam(path []string, value interface{}) error {
+	paramsData, err := n.readParams()
+	if err != nil {
+		return err
+	}
+
+	props, err := params.ToMap("", paramsData, "global")
+	if err != nil {
+		return err
+	}
+
+	// TODO: this is duplicated in YAML.SetParam
+	changes := make(map[string]interface{})
+	cur := changes
+
+	for i, k := range path {
+		if i == len(path)-1 {
+			cur[k] = value
+		} else {
+			if _, ok := cur[k]; !ok {
+				m := make(map[string]interface{})
+				cur[k] = m
+				cur = m
+			}
+		}
+	}
+
+	if err = mergeMaps(props, changes, nil); err != nil {
+		return err
+	}
+
+	updatedParams, err := params.Update([]string{"global"}, paramsData, changes)
+	if err != nil {
+		return err
+	}
+
+	if err = n.writeParams(updatedParams); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (n *Namespace) writeParams(src string) error {
+	return afero.WriteFile(n.fs, n.ParamsPath(), []byte(src), 0644)
+}
+
 // Dir is the absolute directory for a namespace.
 func (n *Namespace) Dir() string {
 	path := []string{n.root, componentsRoot}
@@ -185,6 +234,15 @@ func (n *Namespace) Params() ([]NamespaceParameter, error) {
 	}
 
 	return nsps, nil
+}
+
+func (n *Namespace) readParams() (string, error) {
+	b, err := afero.ReadFile(n.fs, n.ParamsPath())
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 // NamespacesFromEnv returns all namespaces given an environment.
