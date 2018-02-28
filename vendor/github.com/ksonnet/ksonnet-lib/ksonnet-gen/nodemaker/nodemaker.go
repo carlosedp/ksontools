@@ -88,6 +88,13 @@ func KVFromMap(m map[string]interface{}) (*Object, error) {
 			}
 
 			o.Set(InheritedKey(name), child)
+		case map[string]interface{}:
+			child, err := KVFromMap(t)
+			if err != nil {
+				return nil, err
+			}
+
+			o.Set(InheritedKey(name), child)
 		default:
 			return nil, errors.Errorf("unsupported type %T", t)
 		}

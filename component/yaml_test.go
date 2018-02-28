@@ -139,7 +139,7 @@ func TestYAML_SetParam(t *testing.T) {
 
 	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
 
-	err := y.SetParam([]string{"spec", "version"}, "v2", SetParamOptions{})
+	err := y.SetParam([]string{"spec", "version"}, "v2", ParamOptions{})
 	require.NoError(t, err)
 
 	b, err := afero.ReadFile(fs, "/params.libsonnet")

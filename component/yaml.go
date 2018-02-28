@@ -2,10 +2,12 @@ package component
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -71,6 +73,59 @@ func (y *YAML) Name() string {
 	return y.componentName()
 }
 
+// Params returns params for a component.
+func (y *YAML) Params() ([]NamespaceParameter, error) {
+	// find all the params for this component
+	// keys will look like `component-id`
+	paramsData, err := y.readParams()
+	if err != nil {
+		return nil, err
+	}
+
+	props, err := params.ToMap("", paramsData)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find components")
+	}
+
+	re, err := regexp.Compile(fmt.Sprintf(`^(%s-\d+)$`, y.componentName()))
+	if err != nil {
+		return nil, err
+	}
+
+	var params []NamespaceParameter
+	for componentName, componentValue := range props {
+		if re.MatchString(componentName) {
+			m, ok := componentValue.(map[string]interface{})
+			if !ok {
+				return nil, errors.Errorf("component value for %q was not a map", componentName)
+			}
+
+			for k, v := range m {
+				var s string
+				switch v.(type) {
+				default:
+					s = fmt.Sprintf("%#v", v)
+				case map[string]interface{}, []interface{}:
+					b, err := json.Marshal(&v)
+					if err != nil {
+						return nil, err
+					}
+					s = string(b)
+				}
+
+				p := NamespaceParameter{
+					Component: componentName,
+					Key:       k,
+					Value:     s,
+				}
+				params = append(params, p)
+			}
+		}
+	}
+
+	return params, nil
+}
+
 // Objects converts YAML to a slice apimachinery Unstructured objects. Params for a YAML
 // based component are keyed like, `name-id`, where `name` is the file name sans the extension,
 // and the id is the position within the file (starting at 0). Params are named this way
@@ -89,7 +144,7 @@ func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
 }
 
 // SetParam set parameter for a component.
-func (y *YAML) SetParam(path []string, value interface{}, options SetParamOptions) error {
+func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) error {
 	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {

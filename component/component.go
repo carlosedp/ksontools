@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// SetParamOptions is options for setting a parameter.
-type SetParamOptions struct {
+// ParamOptions is options for parameters.
+type ParamOptions struct {
 	Index int
 }
 
@@ -21,7 +21,8 @@ type SetParamOptions struct {
 type Component interface {
 	Name() string
 	Objects() ([]*unstructured.Unstructured, error)
-	SetParam(path []string, value interface{}, options SetParamOptions) error
+	SetParam(path []string, value interface{}, options ParamOptions) error
+	Params() ([]NamespaceParameter, error)
 }
 
 const (
@@ -100,6 +101,21 @@ func ExtractNamespacedComponent(fs afero.Fs, root, path string) (Namespace, stri
 	return ns, component
 }
 
+// GetNamespace gets a namespace by path.
+func GetNamespace(fs afero.Fs, root, path string) (Namespace, error) {
+	nsPath := filepath.Join(root, path)
+	exists, err := afero.Exists(fs, nsPath)
+	if err != nil {
+		return Namespace{}, err
+	}
+
+	if !exists {
+		return Namespace{}, errors.New("unable to find namespace")
+	}
+
+	return Namespace{Path: path, root: nsPath, fs: fs}, nil
+}
+
 // ParamsPath generates the path to params.libsonnet for a namespace.
 func (n *Namespace) ParamsPath() string {
 	return filepath.Join(n.Dir(), paramsFile)
@@ -139,6 +155,35 @@ func (n *Namespace) Dir() string {
 	}
 
 	return filepath.Join(path...)
+}
+
+// NamespaceParameter is a namespaced paramater.
+type NamespaceParameter struct {
+	Component string
+	Key       string
+	Value     string
+}
+
+// Params returns the params for a namespace.
+func (n *Namespace) Params() ([]NamespaceParameter, error) {
+	components, err := n.Components()
+	if err != nil {
+		return nil, err
+	}
+
+	var nsps []NamespaceParameter
+	for _, c := range components {
+		params, err := c.Params()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, p := range params {
+			nsps = append(nsps, p)
+		}
+	}
+
+	return nsps, nil
 }
 
 // NamespacesFromEnv returns all namespaces given an environment.

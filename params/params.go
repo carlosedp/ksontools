@@ -48,7 +48,11 @@ func ToMap(componentName, src string) (map[string]interface{}, error) {
 		return nil, errors.Wrap(err, "parse jsonnet")
 	}
 
-	path := []string{"components", componentName}
+	path := []string{"components"}
+	if componentName != "" {
+		path = append(path, componentName)
+	}
+
 	child, err := jsonnetutil.FindObject(obj, path)
 	if err != nil {
 		return nil, err
@@ -59,9 +63,13 @@ func ToMap(componentName, src string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	if componentName == "" {
+		return m["components"].(map[string]interface{}), nil
+	}
+
 	paramsMap, ok := m[componentName].(map[string]interface{})
 	if !ok {
-		return nil, errors.Errorf("could not find %s in components", componentName)
+		return nil, errors.Errorf("could not find %q in components", componentName)
 	}
 
 	return paramsMap, nil

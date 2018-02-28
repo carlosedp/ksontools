@@ -53,7 +53,7 @@ var paramSetCmd = &cobra.Command{
 			logrus.WithError(err).Fatal("could not find component")
 		}
 
-		if err := c.SetParam(path, value, component.SetParamOptions{}); err != nil {
+		if err := c.SetParam(path, value, component.ParamOptions{}); err != nil {
 			logrus.WithError(err).Fatal("set param")
 		}
 	},
