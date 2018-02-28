@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // setCmd represents the set command
@@ -31,7 +32,8 @@ var paramSetCmd = &cobra.Command{
 			logrus.Fatal("set <component-name> <param-key> <param-value>")
 		}
 
-		actionParamSet, err := action.NewParamSet(fs, args[0], args[1], args[2])
+		indexOpt := action.ParamSetWithIndex(viper.GetInt("index"))
+		actionParamSet, err := action.NewParamSet(fs, args[0], args[1], args[2], indexOpt)
 		if err != nil {
 			return errors.Wrap(err, "unable to initialize param set action")
 		}
@@ -46,6 +48,9 @@ var paramSetCmd = &cobra.Command{
 
 func init() {
 	paramCmd.AddCommand(paramSetCmd)
+
+	paramSetCmd.Flags().IntP("index", "i", 0, "Index in manifest")
+	viper.BindPFlag("index", paramSetCmd.Flags().Lookup("index"))
 
 	// TODO: support env
 }

@@ -136,16 +136,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 // and the id is the position within the file (starting at 0). Params are named this way
 // because a YAML file can contain more than one object.
 func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
-	// isParams, err := y.hasParams()
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "unable to check for params")
-	// }
-
-	// if isParams {
 	return y.applyParams()
-	// }
-
-	// return y.raw()
 }
 
 // SetParam set parameter for a component.
