@@ -145,8 +145,26 @@ func TestYAML_SetParam(t *testing.T) {
 	b, err := afero.ReadFile(fs, "/params.libsonnet")
 	require.NoError(t, err)
 
-	expected, err := ioutil.ReadFile("testdata/updated-yaml-params.libsonnet")
+	expected := testdata(t, "updated-yaml-params.libsonnet")
+
+	require.Equal(t, string(expected), string(b))
+}
+
+func TestYAML_DeleteParam(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
+	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
+
+	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+
+	err := y.DeleteParam([]string{"spec", "version"}, ParamOptions{})
 	require.NoError(t, err)
+
+	b, err := afero.ReadFile(fs, "/params.libsonnet")
+	require.NoError(t, err)
+
+	expected := testdata(t, "params-delete-entry.libsonnet")
 
 	require.Equal(t, string(expected), string(b))
 }
@@ -246,4 +264,10 @@ func stageFile(t *testing.T, fs afero.Fs, src, dest string) {
 
 	err = afero.WriteFile(fs, dest, b, 0644)
 	require.NoError(t, err)
+}
+
+func testdata(t *testing.T, name string) []byte {
+	b, err := ioutil.ReadFile("testdata/" + name)
+	require.NoError(t, err, "read testdata %s", name)
+	return b
 }

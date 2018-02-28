@@ -14,6 +14,7 @@ import (
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -176,6 +177,47 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 	}
 
 	updatedParams, err := params.Update(entry, paramsData, changes)
+	if err != nil {
+		return err
+	}
+
+	if err = y.writeParams(updatedParams); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteParam deletes a param.
+func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
+	// TODO: consolidate this with SetParams
+	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
+	paramsData, err := y.readParams()
+	if err != nil {
+		return err
+	}
+
+	props, err := params.ToMap(entry, paramsData)
+	if err != nil {
+		return err
+	}
+	cur := props
+
+	for i, k := range path {
+		if i == len(path)-1 {
+			delete(cur, k)
+		} else {
+			m, ok := cur[k].(map[string]interface{})
+			if !ok {
+				spew.Dump(k, cur)
+				return errors.New("path not found")
+			}
+
+			cur = m
+		}
+	}
+
+	updatedParams, err := params.Update(entry, paramsData, props)
 	if err != nil {
 		return err
 	}

@@ -108,21 +108,21 @@ func TestFindObject(t *testing.T) {
 		expected ast.Node
 		isErr    bool
 	}{
-		// {
-		// 	name:     "find nested object",
-		// 	path:     []string{"a", "b", "c"},
-		// 	expected: b.Node(),
-		// },
+		{
+			name:     "find nested object",
+			path:     []string{"a", "b", "c"},
+			expected: b.Node(),
+		},
 		{
 			name:     "find string id object",
 			path:     []string{"a", "d-1"},
 			expected: nm.NewStringDouble("string").Node(),
 		},
-		// {
-		// 	name:  "invalid path",
-		// 	path:  []string{"z"},
-		// 	isErr: true,
-		// },
+		{
+			name:  "invalid path",
+			path:  []string{"z"},
+			isErr: true,
+		},
 	}
 
 	for _, tc := range cases {

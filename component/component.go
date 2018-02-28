@@ -22,6 +22,7 @@ type Component interface {
 	Name() string
 	Objects() ([]*unstructured.Unstructured, error)
 	SetParam(path []string, value interface{}, options ParamOptions) error
+	DeleteParam(path []string, options ParamOptions) error
 	Params() ([]NamespaceParameter, error)
 }
 
