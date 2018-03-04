@@ -1,10 +1,12 @@
 {{ define "main" }}
 
+    {{ $.Scratch.Set "current" (where .Site.Pages "Params.k8s_kind" .Params.matcher) }}
+
     <div class="row">
         <div class="col-2">
-            <h3>Mixins</h3>
+            <h4>Mixins</h4>
             <ul>
-                {{ range where (where .Site.Pages "Params.k8s_kind" .Params.matcher) "Params.data_type" "ptMixin" }}
+                {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
                     <li>{{ .Title }}</li>
                 {{ end }}
             </ul>
@@ -16,7 +18,7 @@
             <h2>Index</h2>
 
             <ul>
-                {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
+                {{ range $.Scratch.Get "current" }}
                     <li>
                         <a href="#{{ .Params.current }}">{{ .Title }}</a>
                         {{ partial "kind/toc.html" . }}
@@ -25,7 +27,7 @@
             </ul>
 
 
-            {{ range where .Site.Pages "Params.k8s_kind" .Params.matcher }}
+            {{ range $.Scratch.Get "current" }}
                 <h2>
                     <a name="{{ .Params.current }}">
                         {{ .Title }} - {{ .Params.data_type }}
