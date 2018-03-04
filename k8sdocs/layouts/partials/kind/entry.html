@@ -13,3 +13,10 @@
         {{ partial "kind/entry_content.html" . }}
     {{ end }}
 </ul>
+
+<h5>Types</h5>
+<ul>
+    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptType" }}
+        {{ partial "kind/entry_content.html" . }}
+    {{ end }}
+</ul>

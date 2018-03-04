@@ -147,6 +147,7 @@ type hugoProperty struct {
 	weight       int
 	function     *ast.Function
 	propertyType propertyType
+	fieldType    fieldType
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
@@ -197,13 +198,6 @@ func (hp *hugoProperty) Content() (string, error) {
 	content := fmt.Sprintf("%s/%s/%s - %s",
 		hp.group, hp.version, hp.kind, strings.Join(hp.property, "."))
 
-	sections := strings.Split(hp.comment, "\n")
-	for _, section := range sections {
-		buf.WriteString("<p>")
-		buf.WriteString(section)
-		buf.WriteString("</p>")
-	}
-
 	if hp.function != nil {
 		buf.WriteString("<div>")
 		buf.WriteString(`{{< highlight js >}}`)
@@ -213,6 +207,15 @@ func (hp *hugoProperty) Content() (string, error) {
 		}
 		buf.WriteString(`{{< /highlight >}}`)
 		buf.WriteString("</div>")
+	}
+
+	buf.WriteString(fmt.Sprintf("<p>is a %s</p>\n", hp.fieldType.String()))
+
+	sections := strings.Split(hp.comment, "\n")
+	for _, section := range sections {
+		buf.WriteString("<p>")
+		buf.WriteString(section)
+		buf.WriteString("</p>")
 	}
 
 	return buf.String(), nil

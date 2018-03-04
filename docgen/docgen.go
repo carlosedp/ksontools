@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
@@ -188,8 +191,8 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 		}
 	case *astext.Object:
 		obj := t
-		for _, of := range obj.Fields {
-			if err := dg.handleField(of, group, version, kind, root); err != nil {
+		for i := range obj.Fields {
+			if err := dg.handleField(i, obj.Fields, group, version, kind, root); err != nil {
 				return err
 			}
 		}
@@ -198,7 +201,9 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	return nil
 }
 
-func (dg *Docgen) handleField(of astext.ObjectField, group, version, kind string, root []string) error {
+func (dg *Docgen) handleField(index int, fields []astext.ObjectField, group, version, kind string, root []string) error {
+	of := fields[index]
+
 	id := string(*of.Id)
 
 	if of.Kind == ast.ObjectLocal {
@@ -216,7 +221,7 @@ func (dg *Docgen) handleField(of astext.ObjectField, group, version, kind string
 
 	cur := append(root, id)
 	if of.Method != nil {
-		return dg.handleFunction(of.Method, id, group, version, kind, commentText, cur)
+		return dg.handleFunction(of.Method, fields, id, group, version, kind, commentText, cur)
 	}
 
 	if err := dg.handleMixin(of.Expr2, group, version, kind, commentText, cur); err != nil {
@@ -230,18 +235,24 @@ func (dg *Docgen) handleField(of astext.ObjectField, group, version, kind string
 	return nil
 }
 
-func (dg *Docgen) handleFunction(fn *ast.Function, id, group, version, kind, commentText string, cur []string) error {
+func (dg *Docgen) handleFunction(fn *ast.Function, fields []astext.ObjectField, id, group, version, kind, commentText string, cur []string) error {
+
+	ft, err := idField(id, fields)
+	if err != nil {
+		return err
+	}
+
+	weight := 20
+
 	// create function
 	ptType := ptFunction
-	if id == "new" {
+	if ft == ftConstructor {
 		ptType = ptConstructor
+		weight = 10
 	}
 	fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
-
-	fm.weight = 20
-	if id == "new" {
-		fm.weight = 10
-	}
+	fm.weight = weight
+	fm.fieldType = ft
 
 	fm.function = fn
 
@@ -353,4 +364,54 @@ func stringInSlice(s string, sl []string) bool {
 	}
 
 	return false
+}
+
+type fieldType int
+
+const (
+	ftUnknown fieldType = iota
+	ftArray
+	ftObject
+	ftItem
+	ftMixinInstance
+	ftConstructor
+)
+
+func idField(fnName string, fields []astext.ObjectField) (fieldType, error) {
+	fieldMap := make(map[string]bool)
+	for _, of := range fields {
+		id, err := jsonnetutil.FieldID(of)
+		if err != nil {
+			return ftUnknown, err
+		}
+
+		fieldMap[id] = true
+	}
+
+	base := strings.TrimPrefix(strings.TrimSuffix(fnName, "Mixin"), "with")
+
+	_, setter := fieldMap[fmt.Sprintf("with%s", base)]
+	_, mixinSetter := fieldMap[fmt.Sprintf("with%sMixin", base)]
+	_, fType := fieldMap[fmt.Sprintf("%sType", lowerInitial(base))]
+
+	switch {
+	case fType && mixinSetter && setter:
+		return ftArray, nil
+	case mixinSetter && setter:
+		return ftObject, nil
+	case setter:
+		return ftItem, nil
+	case fnName == "mixinInstance":
+		return ftMixinInstance, nil
+	default:
+		return ftConstructor, nil
+	}
+}
+
+func lowerInitial(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToLower(r)) + s[n:]
 }
