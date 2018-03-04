@@ -15,12 +15,11 @@
 package cmd
 
 import (
-	"strings"
-
-	"github.com/bryanl/woowoo/component"
-	"github.com/bryanl/woowoo/ksplugin"
+	"github.com/bryanl/woowoo/action"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // deleteCmd represents the delete command
@@ -28,28 +27,28 @@ var paramDeleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "delete param",
 	Long:  `delete param`,
-	Run: func(cmd *cobra.Command, args []string) {
-		pluginEnv, err := ksplugin.Read()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 2 {
+			logrus.Fatal("delete <component-name> <param-key> ")
+		}
+
+		indexOpt := action.ParamDeleteWithIndex(viper.GetInt("index"))
+		actionParamDelete, err := action.NewParamDelete(fs, args[0], args[1], indexOpt)
 		if err != nil {
-			logrus.Fatal(err)
+			return errors.Wrap(err, "unable to initialize param delete action")
 		}
 
-		componentName := args[0]
-
-		path := strings.Split(args[1], ".")
-
-		c, err := component.ExtractComponent(fs, pluginEnv.AppDir, componentName)
-		if err != nil {
-			logrus.WithError(err).Fatal("could not find component")
+		if err := actionParamDelete.Run(); err != nil {
+			return errors.Wrap(err, "delete param")
 		}
 
-		if err := c.DeleteParam(path, component.ParamOptions{}); err != nil {
-			logrus.WithError(err).Fatal("delete param")
-		}
+		return nil
 	},
 }
 
 func init() {
 	paramCmd.AddCommand(paramDeleteCmd)
 
+	paramDeleteCmd.Flags().IntP("index", "i", 0, "Index in manifest")
+	viper.BindPFlag("index", paramDeleteCmd.Flags().Lookup("index"))
 }
