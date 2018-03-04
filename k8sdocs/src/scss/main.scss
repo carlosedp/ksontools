@@ -39,3 +39,17 @@ table.group {
 .toc {
     top: 4rem;
 }
+
+.octicon {
+    display: inline-block;
+    vertical-align: middle;
+    fill: currentColor;
+    width: 16px;
+    height: 16px;
+}
+
+a {
+    &[aria-expanded=true] .icon-chevron-right, &[aria-expanded=false] .icon-chevron-down {
+        display: none;
+    }
+}
