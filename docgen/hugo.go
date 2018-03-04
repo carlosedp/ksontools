@@ -100,7 +100,7 @@ func (h *hugo) writeDoc(category []string, name string, fm frontMatterer) error 
 		return err
 	}
 
-	if _, err := buf.Write(b); err != nil {
+	if _, err = buf.Write(b); err != nil {
 		return err
 	}
 
@@ -129,34 +129,37 @@ func (h *hugo) cleanContents() error {
 }
 
 type propertyFrontMatter struct {
-	Title   string    `json:"title"`
-	Date    time.Time `json:"date"`
-	Draft   bool      `json:"draft"`
-	Weight  int       `json:"weight"`
-	K8SKind string    `json:"k8s_kind"`
-	Current string    `json:"current"`
+	Title    string    `json:"title"`
+	Date     time.Time `json:"date"`
+	Draft    bool      `json:"draft"`
+	Weight   int       `json:"weight"`
+	K8SKind  string    `json:"k8s_kind"`
+	Current  string    `json:"current"`
+	DataType string    `json:"data_type"`
 }
 
 type hugoProperty struct {
-	group    string
-	version  string
-	kind     string
-	comment  string
-	property []string
-	weight   int
-	function *ast.Function
+	group        string
+	version      string
+	kind         string
+	comment      string
+	property     []string
+	weight       int
+	function     *ast.Function
+	propertyType propertyType
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
 
-func newHugoProperty(group, version, kind, comment string, property []string) *hugoProperty {
+func newHugoProperty(group, version, kind, comment string, property []string, pt propertyType) *hugoProperty {
 	return &hugoProperty{
-		group:    group,
-		version:  version,
-		kind:     kind,
-		comment:  comment,
-		property: property,
-		weight:   100,
+		group:        group,
+		version:      version,
+		kind:         kind,
+		comment:      comment,
+		property:     property,
+		weight:       100,
+		propertyType: pt,
 	}
 }
 
@@ -171,12 +174,13 @@ func (hp *hugoProperty) FrontMatter() interface{} {
 		kind = append(kind, hp.property[i])
 	}
 	return &propertyFrontMatter{
-		Title:   hp.name(),
-		Date:    time.Now().UTC(),
-		Draft:   false,
-		Weight:  hp.weight,
-		K8SKind: strings.Join(kind, "."),
-		Current: strings.Join(cur, "."),
+		Title:    hp.name(),
+		Date:     time.Now().UTC(),
+		Draft:    false,
+		Weight:   hp.weight,
+		K8SKind:  strings.Join(kind, "."),
+		Current:  strings.Join(cur, "."),
+		DataType: hp.propertyType.String(),
 	}
 }
 

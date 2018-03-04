@@ -1,7 +1,7 @@
 {{ range where .Site.Pages "Params.k8s_kind" .Params.current }}
     <h2>
         <a name="{{ .Params.current }}">
-            {{ .Title }}
+            {{ .Title }} - {{ .Params.data_type }}
         </a>
     </h2>
 

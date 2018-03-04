@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/bryanl/woowoo/yaml2jsonnet"
+	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 
 	"github.com/google/go-jsonnet/ast"
@@ -18,7 +18,7 @@ var (
 
 // Generate generates the docs
 func Generate(k8sLibPath, docsPath string, groups ...string) error {
-	node, err := yaml2jsonnet.ImportJsonnet(k8sLibPath)
+	node, err := jsonnetutil.Import(k8sLibPath)
 	if err != nil {
 		return errors.Wrap(err, "parse and evaluate source")
 	}
@@ -163,16 +163,25 @@ func (dg *Docgen) generateKind(group, version, kind, comment string, node ast.No
 
 	dg.versionLookup[gk] = append(dg.versionLookup[gk], version)
 
-	return dg.iterateProperties(node, group, version, kind, []string{})
+	return dg.iterateProperties(node, group, version, kind, []string{}, ptFunction)
 }
 
-func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string) error {
+type propertyType int
+
+const (
+	ptFunction propertyType = iota
+	ptMixin
+	ptType
+	ptConstructor
+)
+
+func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string, pt propertyType) error {
 	switch t := node.(type) {
 	default:
 		return errors.Errorf("unknown type %T for %s", t, root[len(root)-1])
 	// this a type: metadataType:: hidden.meta.v1.objectMeta
 	case *ast.Index:
-		fm := newHugoProperty(group, version, kind, "", root)
+		fm := newHugoProperty(group, version, kind, "", root, ptType)
 		if err := dg.hugo.writeProperty(group, version, kind, root, fm); err != nil {
 			return err
 		}
@@ -190,18 +199,29 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 			}
 
 			if id == "mixin" {
-				if err := dg.iterateProperties(of.Expr2, group, version, kind, root); err != nil {
+				if err := dg.iterateProperties(of.Expr2, group, version, kind, root, ptMixin); err != nil {
 					return err
 				}
 				continue
 			}
 
+			var commentText string
+			if of.Comment != nil {
+				commentText = of.Comment.Text
+			}
+
 			cur := append(root, id)
 			if of.Method != nil {
-				fm := newHugoProperty(group, version, kind, of.Comment.Text, cur)
+				ptType := ptFunction
+				if id == "new" {
+					ptType = ptConstructor
+				}
+				fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
+
 				if id == "new" {
 					fm.weight = 10
 				}
+
 				fm.function = of.Method
 
 				if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
@@ -211,12 +231,17 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				continue
 			}
 
-			fm := newHugoProperty(group, version, kind, of.Comment.Text, cur)
+			ptType := ptFunction
+			if pt == ptMixin {
+				ptType = ptMixin
+			}
+
+			fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
 			if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
 				return err
 			}
 
-			if err := dg.iterateProperties(of.Expr2, group, version, kind, cur); err != nil {
+			if err := dg.iterateProperties(of.Expr2, group, version, kind, cur, ptFunction); err != nil {
 				return err
 			}
 		}

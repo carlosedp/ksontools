@@ -77,7 +77,7 @@ func (c *Conversion) Process() error {
 }
 
 func (c *Conversion) updateParams(componentName string, values map[string]interface{}) error {
-	update, err := params.Update(componentName, paramsSource, values)
+	update, err := params.Update([]string{"components", componentName}, paramsSource, values)
 	if err != nil {
 		return errors.Wrap(err, "update params")
 	}
