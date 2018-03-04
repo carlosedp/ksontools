@@ -189,69 +189,80 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	case *astext.Object:
 		obj := t
 		for _, of := range obj.Fields {
-			id := string(*of.Id)
-
-			if of.Kind == ast.ObjectLocal {
-				continue
-			}
-
-			// if id == "mixinInstance" {
-			// 	continue
-			// }
-
-			if id == "mixin" {
-				if err := dg.iterateProperties(of.Expr2, group, version, kind, root, ptMixin); err != nil {
-					return err
-				}
-				continue
-			}
-
-			var commentText string
-			if of.Comment != nil {
-				commentText = of.Comment.Text
-			}
-
-			cur := append(root, id)
-			if of.Method != nil {
-				ptType := ptFunction
-				if id == "new" {
-					ptType = ptConstructor
-				}
-				fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
-
-				fm.weight = 20
-				if id == "new" {
-					fm.weight = 10
-				}
-
-				fm.function = of.Method
-
-				if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
-					return err
-				}
-
-				continue
-			}
-
-			ptType := ptFunction
-			if _, ok := of.Expr2.(*astext.Object); ok {
-				ptType = ptMixin
-			}
-
-			fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
-			fm.weight = 20
-			if pt == ptMixin {
-				fm.weight = 30
-			}
-
-			if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
-				return err
-			}
-
-			if err := dg.iterateProperties(of.Expr2, group, version, kind, cur, ptFunction); err != nil {
+			if err := dg.handleField(of, group, version, kind, root); err != nil {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (dg *Docgen) handleField(of astext.ObjectField, group, version, kind string, root []string) error {
+	id := string(*of.Id)
+
+	if of.Kind == ast.ObjectLocal {
+		return nil
+	}
+
+	if id == "mixin" {
+		return dg.iterateProperties(of.Expr2, group, version, kind, root, ptMixin)
+	}
+
+	var commentText string
+	if of.Comment != nil {
+		commentText = of.Comment.Text
+	}
+
+	cur := append(root, id)
+	if of.Method != nil {
+		return dg.handleFunction(of.Method, id, group, version, kind, commentText, cur)
+	}
+
+	if err := dg.handleMixin(of.Expr2, group, version, kind, commentText, cur); err != nil {
+		return err
+	}
+
+	if err := dg.iterateProperties(of.Expr2, group, version, kind, cur, ptFunction); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dg *Docgen) handleFunction(fn *ast.Function, id, group, version, kind, commentText string, cur []string) error {
+	// create function
+	ptType := ptFunction
+	if id == "new" {
+		ptType = ptConstructor
+	}
+	fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
+
+	fm.weight = 20
+	if id == "new" {
+		fm.weight = 10
+	}
+
+	fm.function = fn
+
+	if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (dg *Docgen) handleMixin(node ast.Node, group, version, kind, commentText string, cur []string) error {
+	ptType := ptFunction
+	if _, ok := node.(*astext.Object); ok {
+		ptType = ptMixin
+	}
+
+	fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
+	fm.weight = 30
+
+	if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+		return err
 	}
 
 	return nil
