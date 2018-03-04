@@ -182,6 +182,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	// this a type: metadataType:: hidden.meta.v1.objectMeta
 	case *ast.Index:
 		fm := newHugoProperty(group, version, kind, "", root, ptType)
+		fm.weight = 40
 		if err := dg.hugo.writeProperty(group, version, kind, root, fm); err != nil {
 			return err
 		}
@@ -218,6 +219,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				}
 				fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
 
+				fm.weight = 20
 				if id == "new" {
 					fm.weight = 10
 				}
@@ -237,6 +239,11 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 			}
 
 			fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
+			fm.weight = 20
+			if pt == ptMixin {
+				fm.weight = 30
+			}
+
 			if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
 				return err
 			}

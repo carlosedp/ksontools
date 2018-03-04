@@ -1,11 +1,19 @@
-{{ range where .Site.Pages "Params.k8s_kind" .Params.current }}
-    <h2>
-        <a name="{{ .Params.current }}">
-            {{ .Title }} - {{ .Params.data_type }}
-        </a>
-    </h2>
+{{ $.Scratch.Set "current" (where .Site.Pages "Params.k8s_kind" .Params.current) }}
 
-    {{ .Content }}
-    {{ partial "kind/entry.html" .}}
+<ul>
+    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptFunction" }}
+        {{ partial "kind/entry_content.html" . }}
+    {{ end }}
+</ul>
 
-{{ end }}
+<ul>
+    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
+        {{ partial "kind/entry_content.html" . }}
+    {{ end }}
+</ul>
+
+<ul>
+    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptType" }}
+        {{ partial "kind/entry_content.html" . }}
+    {{ end }}
+</ul>

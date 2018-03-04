@@ -1,0 +1,15 @@
+<li>
+    <h5>
+        <a name="{{ .Params.current }}">
+            {{ .Title }}
+            <a class="btn btn-sm btn-link" data-toggle="collapse" href="#{{ .Params.current }}" role="button">close</a>
+        </a>
+    </h5>
+
+    <div class="collapse show" id="{{ .Params.current }}">
+        {{ .Content }}
+
+        <hr>
+        {{ partial "kind/entry.html" .  }}
+    </div>
+</li>
