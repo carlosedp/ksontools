@@ -234,7 +234,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 			}
 
 			ptType := ptFunction
-			if pt == ptMixin {
+			if _, ok := of.Expr2.(*astext.Object); ok {
 				ptType = ptMixin
 			}
 
