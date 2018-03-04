@@ -195,9 +195,9 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 				continue
 			}
 
-			if id == "mixinInstance" {
-				continue
-			}
+			// if id == "mixinInstance" {
+			// 	continue
+			// }
 
 			if id == "mixin" {
 				if err := dg.iterateProperties(of.Expr2, group, version, kind, root, ptMixin); err != nil {
