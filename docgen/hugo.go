@@ -209,13 +209,26 @@ func (hp *hugoProperty) Content() (string, error) {
 		buf.WriteString("</div>")
 	}
 
-	buf.WriteString(fmt.Sprintf("<p>is a %s</p>\n", hp.fieldType.String()))
-
 	sections := strings.Split(hp.comment, "\n")
 	for _, section := range sections {
 		buf.WriteString("<p>")
 		buf.WriteString(section)
 		buf.WriteString("</p>")
+	}
+
+	if hp.fieldType == ftArray {
+		at := argumentType{
+			propertyName: hp.name(),
+			typeName:     typeName(hp.name()),
+			typeDef:      "x.x.x.foo",
+		}
+
+		out, err := at.ToDoc()
+		if err != nil {
+			return "", errors.Wrap(err, "build array template")
+		}
+
+		buf.WriteString(out)
 	}
 
 	return buf.String(), nil

@@ -392,7 +392,7 @@ func idField(fnName string, fields []astext.ObjectField) (fieldType, error) {
 
 	_, setter := fieldMap[fmt.Sprintf("with%s", base)]
 	_, mixinSetter := fieldMap[fmt.Sprintf("with%sMixin", base)]
-	_, fType := fieldMap[fmt.Sprintf("%sType", lowerInitial(base))]
+	_, fType := fieldMap[typeName(fnName)]
 
 	switch {
 	case fType && mixinSetter && setter:
@@ -406,6 +406,15 @@ func idField(fnName string, fields []astext.ObjectField) (fieldType, error) {
 	default:
 		return ftConstructor, nil
 	}
+}
+
+func typeName(s string) string {
+	if s == "" {
+		return ""
+	}
+
+	base := strings.TrimPrefix(strings.TrimSuffix(s, "Mixin"), "with")
+	return fmt.Sprintf("%sType", lowerInitial(base))
 }
 
 func lowerInitial(s string) string {

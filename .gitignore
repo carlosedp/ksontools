@@ -1,3 +1,5 @@
 .vscode
 .DS_Store
 tmp
+dogen/rice-box.go
+docgen/rice-box.go
