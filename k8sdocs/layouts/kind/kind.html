@@ -3,18 +3,20 @@
     {{ $.Scratch.Set "current" (where .Site.Pages "Params.k8s_kind" .Params.matcher) }}
 
     <div class="row">
-        <div class="col-3">
-            <h4>Mixins</h4>
-            <ul class="toc">
-                {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
-                    <li>
-                        <a href="#{{ .Params.current }}">{{ .Title }}</a>
-                        {{ partial "kind/toc.html" . }}
-                    </li>
-                {{ end }}
-            </ul>
+        <div class="col-2">
+            <div class="col-12" id="kind-sidebar">
+                <h4>Mixins</h4>
+                <ul class="toc">
+                    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
+                        <li>
+                            <a href="#{{ .Params.current }}">{{ .Title }}</a>
+                            {{ partial "kind/toc.html" . }}
+                        </li>
+                    {{ end }}
+                </ul>
+            </div>
         </div>
-        <div class="col-9">
+        <div class="col-10">
             <h1>{{ .Title }}</h1>
             {{ .Content }}
 
