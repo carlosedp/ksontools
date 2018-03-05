@@ -1,22 +1,21 @@
 {{ $.Scratch.Set "current" (where .Site.Pages "Params.k8s_kind" .Params.current) }}
 
-<h5>Functions</h5>
-<ul>
-    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptFunction" }}
-        {{ partial "kind/entry_content.html" . }}
-    {{ end }}
-</ul>
+{{ $functions := where ($.Scratch.Get "current") "Params.data_type" "ptFunction" }}
+{{ if gt (len $functions) 0 }}
+    <h5>Functions</h5>
+    <ul>
+        {{ range $functions  }}
+            {{ partial "kind/entry_content.html" . }}
+        {{ end }}
+    </ul>
+{{ end }}
 
-<h5>Mixins</h5>
-<ul>
-    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
-        {{ partial "kind/entry_content.html" . }}
-    {{ end }}
-</ul>
-
-<h5>Types</h5>
-<ul>
-    {{ range where ($.Scratch.Get "current") "Params.data_type" "ptType" }}
-        {{ partial "kind/entry_content.html" . }}
-    {{ end }}
-</ul>
+{{ $mixins := where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
+{{ if gt (len $mixins) 0 }}
+    <h5>Mixins</h5>
+    <ul>
+        {{ range $mixins }}
+            {{ partial "kind/entry_content.html" . }}
+        {{ end }}
+    </ul>
+{{ end }}

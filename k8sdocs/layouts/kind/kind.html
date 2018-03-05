@@ -28,26 +28,38 @@
             </ul>
             */}}
 
-            <h3>Contructors</h3>
-            <ul>
-                {{ range where ($.Scratch.Get "current") "Params.data_type" "ptConstructor" }}
-                    {{ partial "kind/entry_content.html" . }}
-                {{ end }}
-            </ul>
 
-            <h3>Functions</h3>
-            <ul>
-                {{ range where ($.Scratch.Get "current") "Params.data_type" "ptFunction" }}
-                    {{ partial "kind/entry_content.html" . }}
-                {{ end }}
-            </ul>
+            {{ $constuctors := where ($.Scratch.Get "current") "Params.data_type" "ptConstructor" }}
+            {{ if gt (len $constuctors) 0 }}
+                <h3>Constuctors</h3>
+                <ul>
+                    {{ range $constuctors  }}
+                        {{ partial "kind/entry_content.html" . }}
+                    {{ end }}
+                </ul>
+            {{ end }}
 
-            <h3>Mixins</h3>
-            <ul>
-                {{ range where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
-                    {{ partial "kind/entry_content.html" . }}
-                {{ end }}
-            </ul>
+
+            {{ $functions := where ($.Scratch.Get "current") "Params.data_type" "ptFunction" }}
+            {{ if gt (len $functions) 0 }}
+                <h5>Functions</h5>
+                <ul>
+                    {{ range $functions  }}
+                        {{ partial "kind/entry_content.html" . }}
+                    {{ end }}
+                </ul>
+            {{ end }}
+
+
+            {{ $mixins := where ($.Scratch.Get "current") "Params.data_type" "ptMixin" }}
+            {{ if gt (len $mixins) 0 }}
+                <h5>Mixins</h5>
+                <ul>
+                    {{ range $mixins  }}
+                        {{ partial "kind/entry_content.html" . }}
+                    {{ end }}
+                </ul>
+            {{ end }}
         </div>
     </div>
 
