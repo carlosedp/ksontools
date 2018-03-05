@@ -38,6 +38,19 @@ table.group {
 
 .toc {
     top: 4rem;
+    padding-left: 12px;
+
+    ul {
+        padding-left: 12px;
+    }
+
+    li {
+        word-wrap: break-word;
+    }
+
+    a {
+        font-size: 12px;
+    }
 }
 
 .octicon {
@@ -52,4 +65,11 @@ a {
     &[aria-expanded=true] .icon-chevron-right, &[aria-expanded=false] .icon-chevron-down {
         display: none;
     }
+}
+
+:target:before {
+    content:"";
+    display:block;
+    height: 5.5em;
+    margin:-5.5em 0 0;
 }
