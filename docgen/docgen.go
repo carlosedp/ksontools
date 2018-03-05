@@ -92,28 +92,28 @@ func New(node ast.Node, docsPath string, groups ...string) (*Docgen, error) {
 
 // Generate generates documentation.
 func (dg *Docgen) Generate() error {
-	err := iterateObject(dg.node, dg.generateGroup)
+	err := dg.iterateObject("", dg.node, dg.generateGroup)
 	return errors.Wrap(err, "iterate over groups")
 }
 
-func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
+func (dg *Docgen) generateGroup(prepend, name, _ string, node ast.Node) error {
 	if len(dg.groups) > 0 {
-		if !stringInSlice(name, dg.groups) {
+		if !stringInSlice(name, dg.groups) && prepend == "" {
 			return nil
 		}
 	}
 
 	fm := newGroupFrontMatter(name)
 
-	if err := dg.hugo.writeGroup(name, fm); err != nil {
+	if err := dg.hugo.writeGroup(prepend, name, fm); err != nil {
 		return errors.Wrap(err, "write group")
 	}
 
-	fn := func(version, _ string, node ast.Node) error {
-		return dg.generateVersion(name, version, node)
+	fn := func(prepend, version, _ string, node ast.Node) error {
+		return dg.generateVersion(prepend, name, version, node)
 	}
 
-	err := iterateObject(node, fn)
+	err := dg.iterateObject(prepend, node, fn)
 	if err != nil {
 		return errors.Wrapf(err, "iterate over group %s", name)
 	}
@@ -123,7 +123,7 @@ func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
 
 		for _, version := range versions {
 			comment := dg.kindCommentCache.get(gk.group, version, gk.kind)
-			if err := dg.hugo.writeVersionedKind(gk.group, version, gk.kind, comment); err != nil {
+			if err := dg.hugo.writeVersionedKind(prepend, gk.group, version, gk.kind, comment); err != nil {
 				return errors.Wrapf(err, "write versioned kind %s/%s/%s", gk.group, version, gk.kind)
 			}
 
@@ -132,29 +132,28 @@ func (dg *Docgen) generateGroup(name, _ string, node ast.Node) error {
 
 		fm := newKindFrontMatter(gk.group, gk.kind, sortVersions(versions), descriptions)
 
-		if err := dg.hugo.writeKind(gk.group, gk.kind, fm); err != nil {
+		if err := dg.hugo.writeKind(prepend, gk.group, gk.kind, fm); err != nil {
 			return errors.Wrapf(err, "write kind %s/%s", gk.group, gk.kind)
 		}
-
 	}
 
 	return nil
 }
 
-func (dg *Docgen) generateVersion(group, version string, node ast.Node) error {
-	fn := func(name, comment string, node ast.Node) error {
+func (dg *Docgen) generateVersion(prepend, group, version string, node ast.Node) error {
+	fn := func(prepend, name, comment string, node ast.Node) error {
 		dg.kindCommentCache.set(group, version, name, comment)
-		return dg.generateKind(group, version, name, comment, node)
+		return dg.generateKind(prepend, group, version, name, comment, node)
 	}
 
-	if err := iterateObject(node, fn); err != nil {
+	if err := dg.iterateObject(prepend, node, fn); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (dg *Docgen) generateKind(group, version, kind, comment string, node ast.Node) error {
+func (dg *Docgen) generateKind(prepend, group, version, kind, comment string, node ast.Node) error {
 	if kind == "apiVersion" {
 		return nil
 	}
@@ -168,7 +167,7 @@ func (dg *Docgen) generateKind(group, version, kind, comment string, node ast.No
 
 	dg.versionLookup[gk] = append(dg.versionLookup[gk], version)
 
-	return dg.iterateProperties(node, group, version, kind, []string{}, ptFunction)
+	return dg.iterateProperties(prepend, node, group, version, kind, []string{}, ptFunction)
 }
 
 type propertyType int
@@ -180,7 +179,7 @@ const (
 	ptConstructor
 )
 
-func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, root []string, pt propertyType) error {
+func (dg *Docgen) iterateProperties(prepend string, node ast.Node, group, version, kind string, root []string, pt propertyType) error {
 	switch t := node.(type) {
 	default:
 		return errors.Errorf("unknown type %T for %s", t, root[len(root)-1])
@@ -188,13 +187,13 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	case *ast.Index:
 		fm := newHugoProperty(group, version, kind, "", root, ptType)
 		fm.weight = 40
-		if err := dg.hugo.writeProperty(group, version, kind, root, fm); err != nil {
+		if err := dg.hugo.writeProperty(prepend, group, version, kind, root, fm); err != nil {
 			return err
 		}
 	case *astext.Object:
 		obj := t
 		for i := range obj.Fields {
-			if err := dg.handleField(i, obj.Fields, group, version, kind, root); err != nil {
+			if err := dg.handleField(prepend, i, obj.Fields, group, version, kind, root); err != nil {
 				return err
 			}
 		}
@@ -203,7 +202,7 @@ func (dg *Docgen) iterateProperties(node ast.Node, group, version, kind string, 
 	return nil
 }
 
-func (dg *Docgen) handleField(index int, fields []astext.ObjectField, group, version, kind string, root []string) error {
+func (dg *Docgen) handleField(prepend string, index int, fields []astext.ObjectField, group, version, kind string, root []string) error {
 	of := fields[index]
 
 	id := string(*of.Id)
@@ -213,7 +212,7 @@ func (dg *Docgen) handleField(index int, fields []astext.ObjectField, group, ver
 	}
 
 	if id == "mixin" {
-		return dg.iterateProperties(of.Expr2, group, version, kind, root, ptMixin)
+		return dg.iterateProperties(prepend, of.Expr2, group, version, kind, root, ptMixin)
 	}
 
 	var commentText string
@@ -223,21 +222,21 @@ func (dg *Docgen) handleField(index int, fields []astext.ObjectField, group, ver
 
 	cur := append(root, id)
 	if of.Method != nil {
-		return dg.handleFunction(of.Method, fields, id, group, version, kind, commentText, cur)
+		return dg.handleFunction(prepend, of.Method, fields, id, group, version, kind, commentText, cur)
 	}
 
-	if err := dg.handleMixin(of.Expr2, group, version, kind, commentText, cur); err != nil {
+	if err := dg.handleMixin(prepend, of.Expr2, group, version, kind, commentText, cur); err != nil {
 		return err
 	}
 
-	if err := dg.iterateProperties(of.Expr2, group, version, kind, cur, ptFunction); err != nil {
+	if err := dg.iterateProperties(prepend, of.Expr2, group, version, kind, cur, ptFunction); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (dg *Docgen) handleFunction(fn *ast.Function, fields []astext.ObjectField, id, group, version, kind, commentText string, cur []string) error {
+func (dg *Docgen) handleFunction(prepend string, fn *ast.Function, fields []astext.ObjectField, id, group, version, kind, commentText string, cur []string) error {
 
 	ft, def, err := idField(id, fields)
 	if err != nil {
@@ -258,14 +257,14 @@ func (dg *Docgen) handleFunction(fn *ast.Function, fields []astext.ObjectField, 
 	fm.typeDef = def
 	fm.function = fn
 
-	if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+	if err := dg.hugo.writeProperty(prepend, group, version, kind, cur, fm); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (dg *Docgen) handleMixin(node ast.Node, group, version, kind, commentText string, cur []string) error {
+func (dg *Docgen) handleMixin(prepend string, node ast.Node, group, version, kind, commentText string, cur []string) error {
 	ptType := ptFunction
 	if _, ok := node.(*astext.Object); ok {
 		ptType = ptMixin
@@ -274,16 +273,16 @@ func (dg *Docgen) handleMixin(node ast.Node, group, version, kind, commentText s
 	fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
 	fm.weight = 30
 
-	if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
+	if err := dg.hugo.writeProperty(prepend, group, version, kind, cur, fm); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-type iterateObjectFn func(string, string, ast.Node) error
+type iterateObjectFn func(string, string, string, ast.Node) error
 
-func iterateObject(node ast.Node, fn iterateObjectFn) error {
+func (dg *Docgen) iterateObject(prepend string, node ast.Node, fn iterateObjectFn) error {
 	if node == nil {
 		return errors.New("node was nil")
 	}
@@ -297,13 +296,15 @@ func iterateObject(node ast.Node, fn iterateObjectFn) error {
 		if of.Hide == ast.ObjectFieldInherit {
 			continue
 		}
-
-		if of.Kind == ast.ObjectLocal {
+		id := string(*of.Id)
+		if id == "hidden" {
+			if err := dg.iterateObject("hidden", of.Expr2, dg.generateGroup); err != nil {
+				return err
+			}
 			continue
 		}
 
-		id := string(*of.Id)
-		if id == "hidden" {
+		if of.Kind == ast.ObjectLocal {
 			continue
 		}
 
@@ -312,7 +313,7 @@ func iterateObject(node ast.Node, fn iterateObjectFn) error {
 			comment = of.Comment.Text
 		}
 
-		if err := fn(id, comment, of.Expr2); err != nil {
+		if err := fn(prepend, id, comment, of.Expr2); err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,8 @@
 package docgen
 
 import (
+	"strings"
+
 	"github.com/gobuffalo/plush"
 
 	rice "github.com/GeertJohan/go.rice"
@@ -23,10 +25,14 @@ func (at *argumentType) ToDoc() (string, error) {
 		return "", err
 	}
 
+	parts := strings.Split(at.typeDef, ".")
+	typeURL := strings.Join(parts, "/")
+
 	ctx := plush.NewContext()
 	ctx.Set("propertyName", at.propertyName)
 	ctx.Set("typeName", at.typeName)
 	ctx.Set("typeDef", at.typeDef)
+	ctx.Set("typeURL", typeURL)
 
 	return plush.Render(tmpl, ctx)
 }

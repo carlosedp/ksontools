@@ -54,7 +54,7 @@ func (h *hugo) mkdir(path ...string) error {
 	return nil
 }
 
-func (h *hugo) writeProperty(group, version, kind string, property []string, fm *hugoProperty) error {
+func (h *hugo) writeProperty(prepend, group, version, kind string, property []string, fm *hugoProperty) error {
 	category := []string{group, version, kind}
 	for i := range property {
 		if i == len(property)-1 {
@@ -65,28 +65,32 @@ func (h *hugo) writeProperty(group, version, kind string, property []string, fm 
 	}
 
 	id := property[len(property)-1]
-	return h.writeDoc(category, id, fm)
+	return h.writeDoc(prepend, category, id, fm)
 }
 
-func (h *hugo) writeGroup(group string, fm *hugoGroup) error {
-	return h.writeDoc([]string{"groups"}, group, fm)
+func (h *hugo) writeGroup(prepend, group string, fm *hugoGroup) error {
+	return h.writeDoc(prepend, []string{"groups"}, group, fm)
 }
 
-func (h *hugo) writeKind(group, kind string, fm *hugoKind) error {
-	return h.writeDoc([]string{group}, kind, fm)
+func (h *hugo) writeKind(prepend, group, kind string, fm *hugoKind) error {
+	return h.writeDoc(prepend, []string{group}, kind, fm)
 }
 
-func (h *hugo) writeVersionedKind(group, version, kind, comment string) error {
+func (h *hugo) writeVersionedKind(prepend, group, version, kind, comment string) error {
 	category := []string{group, version}
 	fm := newHugoVersionedKind(group, version, kind, comment)
-	return h.writeDoc(category, kind, fm)
+	return h.writeDoc(prepend, category, kind, fm)
 }
 
-func (h *hugo) writeDoc(category []string, name string, fm frontMatterer) error {
+func (h *hugo) writeDoc(prepend string, category []string, name string, fm frontMatterer) error {
 	logrus.WithFields(logrus.Fields{
 		"category": strings.Join(category, "/"),
 		"name":     name,
 	}).Debug("writing doc")
+
+	if prepend != "" {
+		category = append([]string{prepend}, category...)
+	}
 
 	parentPath := append([]string{"content"}, category...)
 	if err := h.mkdir(parentPath...); err != nil {
