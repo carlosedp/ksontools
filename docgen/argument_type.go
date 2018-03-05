@@ -20,7 +20,7 @@ func (at *argumentType) ToDoc() (string, error) {
 		return "", err
 	}
 
-	tmpl, err := box.String("argument_type.html")
+	tmpl, err := box.String("argument_type.md")
 	if err != nil {
 		return "", err
 	}
