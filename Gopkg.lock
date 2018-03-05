@@ -271,7 +271,7 @@
   revision = "82e578960fdc026bbe7a79070d707a506f941ad4"
 
 [[projects]]
-  branch = "bug-nested-map-string"
+  branch = "master"
   name = "github.com/ksonnet/ksonnet-lib"
   packages = [
     "ksonnet-gen/astext",
@@ -282,8 +282,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "bd089e6970a1e9ad1df8d98c2e2c30050e23a46a"
-  source = "github.com/bryanl/ksonnet-lib"
+  revision = "5f18b78811847eb7f581deb4ad3d3cf0abdbe00d"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -704,6 +703,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b43c80d7c703b117eb376fab465e26f86a42d10c3e766982698156b30094bb3a"
+  inputs-digest = "0c6acf3db12e91a62464ccb6c6351818fc0bb067b3f3c320022b292d83f8cc02"
   solver-name = "gps-cdcl"
   solver-version = 1

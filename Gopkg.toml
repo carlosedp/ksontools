@@ -47,8 +47,9 @@
 
 [[override]]
   name = "github.com/ksonnet/ksonnet-lib"
-  source = "github.com/bryanl/ksonnet-lib"
-  branch = "bug-nested-map-string"
+  branch = "master"
+  # source = "github.com/bryanl/ksonnet-lib"
+  # branch = "bug-nested-map-string"
 
 [[constraint]]
   name = "k8s.io/api"
