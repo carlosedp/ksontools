@@ -148,6 +148,7 @@ type hugoProperty struct {
 	function     *ast.Function
 	propertyType propertyType
 	fieldType    fieldType
+	typeDef      string
 }
 
 var _ frontMatterer = (*hugoProperty)(nil)
@@ -220,7 +221,7 @@ func (hp *hugoProperty) Content() (string, error) {
 		at := argumentType{
 			propertyName: hp.name(),
 			typeName:     typeName(hp.name()),
-			typeDef:      "x.x.x.foo",
+			typeDef:      hp.typeDef,
 		}
 
 		out, err := at.ToDoc()

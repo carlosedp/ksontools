@@ -1,6 +1,7 @@
 package docgen
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 	"sort"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
+	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"
@@ -237,7 +239,7 @@ func (dg *Docgen) handleField(index int, fields []astext.ObjectField, group, ver
 
 func (dg *Docgen) handleFunction(fn *ast.Function, fields []astext.ObjectField, id, group, version, kind, commentText string, cur []string) error {
 
-	ft, err := idField(id, fields)
+	ft, def, err := idField(id, fields)
 	if err != nil {
 		return err
 	}
@@ -253,7 +255,7 @@ func (dg *Docgen) handleFunction(fn *ast.Function, fields []astext.ObjectField, 
 	fm := newHugoProperty(group, version, kind, commentText, cur, ptType)
 	fm.weight = weight
 	fm.fieldType = ft
-
+	fm.typeDef = def
 	fm.function = fn
 
 	if err := dg.hugo.writeProperty(group, version, kind, cur, fm); err != nil {
@@ -377,15 +379,25 @@ const (
 	ftConstructor
 )
 
-func idField(fnName string, fields []astext.ObjectField) (fieldType, error) {
+func idField(fnName string, fields []astext.ObjectField) (fieldType, string, error) {
+	typeMap := make(map[string]string)
 	fieldMap := make(map[string]bool)
 	for _, of := range fields {
 		id, err := jsonnetutil.FieldID(of)
 		if err != nil {
-			return ftUnknown, err
+			return ftUnknown, "", err
 		}
 
 		fieldMap[id] = true
+		if strings.HasSuffix(id, "Type") {
+			if idx, ok := of.Expr2.(*ast.Index); ok {
+				var buf bytes.Buffer
+				if err := printer.Fprint(&buf, idx); err != nil {
+					return ftUnknown, "", err
+				}
+				typeMap[id] = buf.String()
+			}
+		}
 	}
 
 	base := strings.TrimPrefix(strings.TrimSuffix(fnName, "Mixin"), "with")
@@ -396,15 +408,16 @@ func idField(fnName string, fields []astext.ObjectField) (fieldType, error) {
 
 	switch {
 	case fType && mixinSetter && setter:
-		return ftArray, nil
+		tn := typeMap[typeName(fnName)]
+		return ftArray, tn, nil
 	case mixinSetter && setter:
-		return ftObject, nil
+		return ftObject, "", nil
 	case setter:
-		return ftItem, nil
+		return ftItem, "", nil
 	case fnName == "mixinInstance":
-		return ftMixinInstance, nil
+		return ftMixinInstance, "", nil
 	default:
-		return ftConstructor, nil
+		return ftConstructor, "", nil
 	}
 }
 
