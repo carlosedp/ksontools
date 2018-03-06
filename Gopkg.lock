@@ -262,13 +262,16 @@
   name = "github.com/ksonnet/ksonnet"
   packages = [
     "component",
+    "generator",
     "metadata/app",
+    "metadata/lib",
     "metadata/params",
     "prototype",
     "strings",
     "utils"
   ]
-  revision = "82e578960fdc026bbe7a79070d707a506f941ad4"
+  revision = "fcd4800f96020f598705c655638de4b6eb43e74f"
+  version = "v0.9.0"
 
 [[projects]]
   branch = "master"
@@ -703,6 +706,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0c6acf3db12e91a62464ccb6c6351818fc0bb067b3f3c320022b292d83f8cc02"
+  inputs-digest = "454bc96804aa8a4c25f0398295759e209c36cf8003a747a2f5a45bdfc1683085"
   solver-name = "gps-cdcl"
   solver-version = 1
