@@ -15,16 +15,8 @@
 package cmd
 
 import (
-	"bytes"
-	"path/filepath"
-	"strings"
-
-	"github.com/bryanl/woowoo/ksplugin"
-	kscomponent "github.com/ksonnet/ksonnet/component"
-	ksparam "github.com/ksonnet/ksonnet/metadata/params"
-	"github.com/ksonnet/ksonnet/prototype"
-	"github.com/spf13/afero"
-
+	"github.com/bryanl/woowoo/action"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
@@ -36,62 +28,33 @@ var importCmd = &cobra.Command{
 	Use:   "import",
 	Short: "Import manifest",
 	Long:  `Import manifest`,
-	Run: func(cmd *cobra.Command, args []string) {
-		pluginEnv, err := ksplugin.Read()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
+	RunE: func(cmd *cobra.Command, args []string) error {
 		fileName := viper.GetString("f")
 		if fileName == "" {
-			logrus.Fatal("-f is required")
+			return errors.New("-f is required")
 		}
 
 		namespace := viper.GetString("ns")
 
-		var name bytes.Buffer
-		if namespace != "" {
-			name.WriteString(namespace + "/")
-		}
-
-		base := filepath.Base(fileName)
-		ext := filepath.Ext(base)
-
-		templateType, err := prototype.ParseTemplateType(strings.TrimPrefix(ext, "."))
+		importAction, err := action.NewImport(fs, namespace, fileName)
 		if err != nil {
-			logrus.WithError(err).Fatal("parse template type")
+			return err
 		}
 
-		name.WriteString(strings.TrimSuffix(base, ext))
-
-		contents, err := afero.ReadFile(fs, fileName)
-		if err != nil {
-			logrus.WithError(err).Fatal("read manifest")
+		if err := importAction.Run(); err != nil {
+			logrus.Errorf("import failed: %+v", err)
+			return errors.Wrap(err, "unable to import file or directory")
 		}
 
-		params := ksparam.Params{}
-
-		_, err = kscomponent.Create(fs, pluginEnv.AppDir, name.String(), string(contents), params, templateType)
-		if err != nil {
-			logrus.WithError(err).Fatal("create component")
-		}
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(importCmd)
 
-	importCmd.Flags().StringP("f", "f", "", "Filename for component to import")
+	importCmd.Flags().StringP("f", "f", "", "Filename or directory for component to import")
 	viper.BindPFlag("f", importCmd.Flags().Lookup("f"))
 	importCmd.Flags().String("ns", "", "Component namespace")
 	viper.BindPFlag("ns", importCmd.Flags().Lookup("ns"))
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// importCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// importCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
