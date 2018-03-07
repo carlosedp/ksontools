@@ -10,9 +10,23 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+func TestYAML_Params(t *testing.T) {
+	fs := afero.NewMemMapFs()
+	stageFile(t, fs, "deployment.yaml", "/deployment.yaml")
+	stageFile(t, fs, "params-deployment.libsonnet", "/params.libsonnet")
+
+	y := NewYAML(fs, "/deployment.yaml", "/params.libsonnet")
+	params, err := y.Params()
+	require.NoError(t, err)
+
+	require.Len(t, params, 1)
+	require.Equal(t, "metadata.labels", params[0].Key)
+}
+
 func TestYAML_Objects_no_params(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
 	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
 

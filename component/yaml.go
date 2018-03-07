@@ -105,27 +105,85 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 				return nil, errors.Errorf("component value for %q was not a map", componentName)
 			}
 
-			for k, v := range m {
-				var s string
-				switch v.(type) {
-				default:
-					s = fmt.Sprintf("%#v", v)
-				case map[string]interface{}, []interface{}:
-					b, err := json.Marshal(&v)
-					if err != nil {
-						return nil, err
-					}
-					s = string(b)
-				}
-
-				p := NamespaceParameter{
-					Component: componentName,
-					Key:       k,
-					Value:     s,
-				}
-				params = append(params, p)
+			childParams, err := y.paramValues(componentName, m, nil)
+			if err != nil {
+				return nil, err
 			}
+
+			params = append(params, childParams...)
 		}
+	}
+
+	return params, nil
+}
+
+func isLeaf(m map[string]interface{}) bool {
+	allLiterals := true
+	for _, v := range m {
+		if _, ok := v.(map[string]interface{}); ok {
+			allLiterals = false
+		}
+	}
+
+	return allLiterals
+}
+
+func (y *YAML) paramValues(componentName string, m map[string]interface{}, path []string) ([]NamespaceParameter, error) {
+	var params []NamespaceParameter
+
+	if isLeaf(m) {
+		b, err := json.Marshal(&m)
+		if err != nil {
+			return nil, err
+		}
+		s := string(b)
+
+		key := strings.Join(path, ".")
+		p := NamespaceParameter{
+			Component: componentName,
+			Key:       key,
+			Value:     s,
+		}
+
+		params = append(params, p)
+		return params, nil
+	}
+
+	for k, v := range m {
+
+		var s string
+		switch t := v.(type) {
+		default:
+			s = fmt.Sprintf("%#v", v)
+			p := NamespaceParameter{
+				Component: componentName,
+				Key:       k,
+				Value:     s,
+			}
+			params = append(params, p)
+
+		case map[string]interface{}:
+			childPath := append(path, k)
+			childParams, err := y.paramValues(componentName, t, childPath)
+			if err != nil {
+				return nil, err
+			}
+
+			params = append(params, childParams...)
+		case []interface{}:
+			b, err := json.Marshal(&v)
+			if err != nil {
+				return nil, err
+			}
+			s = string(b)
+			p := NamespaceParameter{
+				Component: componentName,
+				Key:       k,
+				Value:     s,
+			}
+			params = append(params, p)
+		}
+
 	}
 
 	return params, nil
