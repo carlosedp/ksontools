@@ -15,14 +15,13 @@
 package cmd
 
 import (
-	"os"
-
-	"github.com/bryanl/woowoo/component"
-	"github.com/bryanl/woowoo/ksplugin"
-	"github.com/olekukonko/tablewriter"
-	"github.com/sirupsen/logrus"
+	"github.com/bryanl/woowoo/action"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+const (
+	vParamListNamespace = "param-list-ns"
 )
 
 // listCmd represents the list command
@@ -30,43 +29,15 @@ var paramListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "param list",
 	Long:  `param list`,
-	Run: func(cmd *cobra.Command, args []string) {
-		pluginEnv, err := ksplugin.Read()
-		if err != nil {
-			logrus.Fatal(err)
-		}
-
-		name := viper.GetString("ns")
-
-		ns, err := component.GetNamespace(fs, pluginEnv.AppDir, name)
-		if err != nil {
-			logrus.WithError(err).Fatal("could not find namespace")
-		}
-
-		paramData, err := ns.Params()
-		if err != nil {
-			logrus.WithError(err).Fatal("could not list params")
-		}
-
-		// TODO: we can do better than this
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"COMPONENT", "KEY", "VALUE"})
-		table.SetCenterSeparator("")
-		table.SetColumnSeparator("")
-		table.SetRowSeparator("")
-		table.SetRowLine(false)
-		table.SetBorder(false)
-		for _, data := range paramData {
-			table.Append([]string{data.Component, data.Key, data.Value})
-		}
-
-		table.Render()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		nsName := viper.GetString(vParamListNamespace)
+		return action.ParamList(fs, nsName)
 	},
 }
 
 func init() {
 	paramCmd.AddCommand(paramListCmd)
 
-	paramListCmd.Flags().String("ns", "", "Namespace")
-	viper.BindPFlag("ns", paramListCmd.Flags().Lookup("ns"))
+	paramListCmd.Flags().String(flagNamespace, "", "Component namespace")
+	viper.BindPFlag(vParamListNamespace, paramListCmd.Flags().Lookup(flagNamespace))
 }

@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	flagComponentListNamespace = "ns"
-	vComponentListNamespace    = "component-list-ns"
+	vComponentListNamespace = "component-list-ns"
 )
 
 var componentListCmd = &cobra.Command{
@@ -24,6 +23,6 @@ var componentListCmd = &cobra.Command{
 func init() {
 	componentCmd.AddCommand(componentListCmd)
 
-	componentListCmd.Flags().String(flagComponentListNamespace, "", "Component namespace")
-	viper.BindPFlag(vComponentListNamespace, componentListCmd.Flags().Lookup("ns"))
+	componentListCmd.Flags().String(flagNamespace, "", "Component namespace")
+	viper.BindPFlag(vComponentListNamespace, componentListCmd.Flags().Lookup(flagNamespace))
 }

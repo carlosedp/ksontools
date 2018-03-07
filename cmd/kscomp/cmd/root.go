@@ -24,6 +24,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	flagNamespace = "ns"
+)
+
 var fs = afero.NewOsFs()
 
 var cfgFile string
