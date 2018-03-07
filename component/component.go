@@ -71,8 +71,7 @@ func Path(fs afero.Fs, root, name string) (string, error) {
 
 // Namespace is a component namespace.
 type Namespace struct {
-	// Path is the path of the component namespace.
-	Path string
+	path string
 
 	root string
 	fs   afero.Fs
@@ -97,25 +96,31 @@ func ExtractComponent(fs afero.Fs, root, path string) (Component, error) {
 
 // ExtractNamespacedComponent extracts a namespace and a component from a path.
 func ExtractNamespacedComponent(fs afero.Fs, root, path string) (Namespace, string) {
-	path, component := filepath.Split(path)
-	path = strings.TrimSuffix(path, "/")
-	ns := Namespace{Path: path, root: root, fs: fs}
+	nsPath, component := filepath.Split(path)
+	ns := Namespace{path: nsPath, root: root, fs: fs}
 	return ns, component
 }
 
+// Name returns the namespace name.
+func (n *Namespace) Name() string {
+	return n.path
+}
+
 // GetNamespace gets a namespace by path.
-func GetNamespace(fs afero.Fs, root, path string) (Namespace, error) {
-	nsPath := filepath.Join(root, path)
-	exists, err := afero.Exists(fs, nsPath)
+func GetNamespace(fs afero.Fs, root, nsName string) (Namespace, error) {
+	parts := strings.Split(nsName, "/")
+	nsDir := filepath.Join(append([]string{root, componentsRoot}, parts...)...)
+
+	exists, err := afero.Exists(fs, nsDir)
 	if err != nil {
 		return Namespace{}, err
 	}
 
 	if !exists {
-		return Namespace{}, errors.New("unable to find namespace")
+		return Namespace{}, errors.Errorf("unable to find namespace %q", nsName)
 	}
 
-	return Namespace{Path: path, root: nsPath, fs: fs}, nil
+	return Namespace{path: nsName, root: root, fs: fs}, nil
 }
 
 // ParamsPath generates the path to params.libsonnet for a namespace.
@@ -125,9 +130,10 @@ func (n *Namespace) ParamsPath() string {
 
 // Components returns the components in a namespace.
 func (n *Namespace) Components() ([]Component, error) {
-	dir := filepath.Join(n.root, componentsRoot) + "/"
+	parts := strings.Split(n.path, "/")
+	nsDir := filepath.Join(append([]string{n.root, componentsRoot}, parts...)...)
 
-	fis, err := afero.ReadDir(n.fs, dir)
+	fis, err := afero.ReadDir(n.fs, nsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +142,7 @@ func (n *Namespace) Components() ([]Component, error) {
 	for _, fi := range fis {
 
 		ext := filepath.Ext(fi.Name())
-		path := filepath.Join(dir, fi.Name())
+		path := filepath.Join(nsDir, fi.Name())
 
 		switch ext {
 		// TODO: these should be constants
@@ -199,9 +205,10 @@ func (n *Namespace) writeParams(src string) error {
 
 // Dir is the absolute directory for a namespace.
 func (n *Namespace) Dir() string {
+	parts := strings.Split(n.path, "/")
 	path := []string{n.root, componentsRoot}
-	if n.Path != "" {
-		path = append(path, strings.Split(n.Path, "/")...)
+	if len(n.path) != 0 {
+		path = append(path, parts...)
 	}
 
 	return filepath.Join(path...)
@@ -262,10 +269,10 @@ func NamespacesFromEnv(fs afero.Fs, appSpecer AppSpecer, root, env string) ([]Na
 
 		path := strings.TrimPrefix(paths[i], prefix)
 		ns, _ := ExtractNamespacedComponent(fs, root, path)
-		if _, ok := seen[ns.Path]; ok {
+		if _, ok := seen[ns.Name()]; ok {
 			continue
 		}
-		seen[ns.Path] = true
+		seen[ns.Name()] = true
 		namespaces = append(namespaces, ns)
 	}
 
@@ -291,8 +298,8 @@ func Namespaces(fs afero.Fs, root string) ([]Namespace, error) {
 
 			if ok {
 				nsPath := strings.TrimPrefix(path, componentRoot)
-				nsPath = strings.TrimPrefix(nsPath, "/")
-				ns := Namespace{Path: nsPath, fs: fs, root: root}
+				nsPath = strings.TrimPrefix(nsPath, string(filepath.Separator))
+				ns := Namespace{path: nsPath, fs: fs, root: root}
 				namespaces = append(namespaces, ns)
 			}
 		}
@@ -305,7 +312,7 @@ func Namespaces(fs afero.Fs, root string) ([]Namespace, error) {
 	}
 
 	sort.Slice(namespaces, func(i, j int) bool {
-		return namespaces[i].Path < namespaces[j].Path
+		return namespaces[i].Name() < namespaces[j].Name()
 	})
 
 	return namespaces, nil

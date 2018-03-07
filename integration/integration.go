@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	"github.com/bryanl/ksonnet/plugin"
 	"github.com/pkg/errors"
@@ -39,19 +40,22 @@ func newTestEnv(dir, id string) (*testEnv, error) {
 	}, nil
 }
 
-func (te *testEnv) run(options ...string) (string, string, error) {
+func (te *testEnv) run(options ...string) *cmdOutput {
 	cmd := exec.Command("ks", append([]string{te.id}, options...)...)
-	return runWithOutput(cmd)
+	co, err := runWithOutput(cmd)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	return co
 }
 
-func (te *testEnv) runInApp(appDir string, options ...string) {
+func (te *testEnv) runInApp(appDir string, options ...string) *cmdOutput {
 	ExpectWithOffset(1, appDir).To(BeADirectory())
-	cmd := exec.Command("ks", append([]string{te.id}, options...)...)
+	cmd := exec.Command("ks", append([]string{te.id, "--"}, options...)...)
 	cmd.Dir = appDir
 
-	stdout, stderr, err := runWithOutput(cmd)
-	msg := fmt.Sprintf("stdout:\n%s\nstderr:\n%s", stdout, stderr)
-	ExpectWithOffset(0, err).ToNot(HaveOccurred(), msg)
+	co, err := runWithOutput(cmd)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+
+	return co
 }
 
 func (te *testEnv) pluginDir() string {
@@ -110,9 +114,13 @@ func (te *testEnv) initApp() string {
 	}
 	cmd := exec.Command("ks", options...)
 
-	stdout, stderr, err := runWithOutput(cmd)
-	msg := fmt.Sprintf("stdout:\n%s\nstderr:\n%s", stdout, stderr)
-	Expect(err).ToNot(HaveOccurred(), msg)
+	co, err := runWithOutput(cmd)
+	Expect(err).ToNot(HaveOccurred())
+
+	msg := fmt.Sprintf("exitCode: %d\nstdout:\n%s\nstderr:\n%s",
+		co.exitCode, co.stdout, co.stderr)
+	Expect(co.exitCode).To(Equal(0), msg)
+
 	return appDir
 }
 
@@ -135,16 +143,42 @@ func buildPluginConfig(te *testEnv) ([]byte, error) {
 	return yaml.Marshal(&config)
 }
 
-func runWithOutput(cmd *exec.Cmd) (string, string, error) {
+type cmdOutput struct {
+	stdout   string
+	stderr   string
+	exitCode int
+}
+
+func runWithOutput(cmd *exec.Cmd) (*cmdOutput, error) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
-		return "", "", err
+	if err := cmd.Start(); err != nil {
+		return nil, err
 	}
 
-	return stdout.String(), stderr.String(), nil
+	var exitCode int
+	if err := cmd.Wait(); err != nil {
+		switch t := err.(type) {
+		default:
+			return nil, err
+		case *exec.ExitError:
+			status, ok := t.Sys().(syscall.WaitStatus)
+			if !ok {
+				return nil, t
+			}
+			exitCode = status.ExitStatus()
+		}
+	}
+
+	co := &cmdOutput{
+		stdout:   stdout.String(),
+		stderr:   stderr.String(),
+		exitCode: exitCode,
+	}
+
+	return co, nil
 }

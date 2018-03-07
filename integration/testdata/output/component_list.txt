@@ -1,0 +1,8 @@
+COMPONENT
+=========
+certificate-crd
+clusterissuer-crd
+deployment
+issuer-crd
+rbac
+serviceaccount

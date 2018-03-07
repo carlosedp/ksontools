@@ -1,0 +1,9 @@
+Error: unable to find namespace "invalid"
+Usage:
+  kscomp component list [flags]
+
+Flags:
+  -h, --help        help for list
+      --ns string   Component namespace
+
+exit status 1
