@@ -26,5 +26,6 @@ func assertOutput(name, output string) {
 }
 
 func assertExitStatus(co *cmdOutput, status int) {
-	ExpectWithOffset(1, co.exitCode).To(Equal(status))
+	ExpectWithOffset(1, co.exitCode).To(Equal(status),
+		"expected exit status to be %d but was %d", status, co.exitCode)
 }

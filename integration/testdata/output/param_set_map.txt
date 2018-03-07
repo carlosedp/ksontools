@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: cert-manager
+    chart: cert-manager-0.2.2
+    heritage: Tiller
+    release: cert-manager
+    session: session-a
+  name: cert-manager
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cert-manager
+        release: cert-manager
+    spec:
+      containers:
+      - image: quay.io/jetstack/cert-manager-controller:v0.2.3
+        imagePullPolicy: IfNotPresent
+        name: cert-manager
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+      - image: quay.io/jetstack/cert-manager-ingress-shim:v0.2.3
+        imagePullPolicy: IfNotPresent
+        name: ingress-shim
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+      serviceAccountName: cert-manager

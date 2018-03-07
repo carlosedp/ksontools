@@ -33,11 +33,9 @@ var _ = Describe("Integration", func() {
 			Context("list", func() {
 				Context("with a namespace which has components", func() {
 					It("lists the components in a namespace", func() {
-						dir := filepath.Join(dataPath, "rbac")
-						co := te.runInApp(appDir, "import", "-f", dir)
-						assertExitStatus(co, 0)
+						createDefaultComponents(te, appDir)
 
-						co = te.runInApp(appDir, "component", "list")
+						co := te.runInApp(appDir, "component", "list")
 						assertExitStatus(co, 0)
 						assertOutput("component_list.txt", co.stdout)
 					})
@@ -85,6 +83,45 @@ var _ = Describe("Integration", func() {
 						c := filepath.Join(appDir, "components", f)
 						assertFileExists(c)
 					}
+				})
+			})
+		})
+
+		Context("param", func() {
+			BeforeEach(func() {
+				createDefaultComponents(te, appDir)
+			})
+
+			Context("set", func() {
+				Context("map", func() {
+					It("sets a map value", func() {
+						co := te.runInApp(appDir, "param", "set",
+							"deployment", "metadata.labels", `{"session":"session-a"}`)
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
+						assertOutput("param_set_map.txt", co.stdout)
+					})
+				})
+				Context("array", func() {
+					It("sets an array value", func() {
+						co := te.runInApp(appDir, "param", "set",
+							"deployment", "metadata.array", "[1,2,3,4]")
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
+						assertOutput("param_set_array.txt", co.stdout)
+					})
+				})
+				Context("literal", func() {
+					It("sets a literal value", func() {
+						co := te.runInApp(appDir, "param", "set",
+							"deployment", "metadata.name", "cert-manager2")
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
+						assertOutput("param_set_literal.txt", co.stdout)
+					})
 				})
 			})
 		})
