@@ -92,6 +92,24 @@ var _ = Describe("Integration", func() {
 				createDefaultComponents(te, appDir)
 			})
 
+			Context("list", func() {
+				It("lists parameters for a namespace", func() {
+					co := te.runInApp(appDir, "param", "list")
+					assertOutput("param_list_empty.txt", co.stdout)
+				})
+
+				Context("with custom parameters set", func() {
+					It("lists parameters for a namespace", func() {
+						co := te.runInApp(appDir, "param", "set",
+							"deployment", "metadata.labels", `{"session":"session-a"}`)
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "param", "list")
+						assertOutput("param_list_map_key.txt", co.stdout)
+					})
+				})
+			})
+
 			Context("set", func() {
 				Context("map", func() {
 					It("sets a map value", func() {

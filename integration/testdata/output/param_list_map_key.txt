@@ -1,0 +1,3 @@
+COMPONENT    KEY             VALUE
+=========    ===             =====
+deployment-0 metadata.labels {"session":"session-a"}
