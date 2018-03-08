@@ -14,7 +14,6 @@ import (
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -132,6 +131,9 @@ func (y *YAML) paramValues(componentName string, m map[string]interface{}, path 
 	var params []NamespaceParameter
 
 	if isLeaf(m) {
+		if len(m) == 0 {
+			return params, nil
+		}
 		b, err := json.Marshal(&m)
 		if err != nil {
 			return nil, err
@@ -252,7 +254,7 @@ func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
 
 	props, err := params.ToMap(entry, paramsData, paramsComponentRoot)
 	if err != nil {
-		return err
+		return errors.Errorf("invalid path %q in %s", strings.Join(path, "."), y.Name())
 	}
 	cur := props
 
@@ -262,7 +264,6 @@ func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
 		} else {
 			m, ok := cur[k].(map[string]interface{})
 			if !ok {
-				spew.Dump(k, cur)
 				return errors.New("path not found")
 			}
 

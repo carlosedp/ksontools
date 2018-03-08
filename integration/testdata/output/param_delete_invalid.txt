@@ -1,0 +1,1 @@
+delete param: invalid path "metadata.name" in deployment

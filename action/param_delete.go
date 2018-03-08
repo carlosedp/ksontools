@@ -8,18 +8,28 @@ import (
 	"github.com/spf13/afero"
 )
 
+// ParamDelete deletes a parameter from a component.
+func ParamDelete(fs afero.Fs, componentName, path string, opts ...ParamDeleteOpt) error {
+	pd, err := newParamDelete(fs, componentName, path, opts...)
+	if err != nil {
+		return err
+	}
+
+	return pd.Run()
+}
+
 // ParamDeleteOpt is an option for configuration ParamDelete.
-type ParamDeleteOpt func(*ParamDelete)
+type ParamDeleteOpt func(*paramDelete)
 
 // ParamDeleteWithIndex sets the index for the delete option.
 func ParamDeleteWithIndex(index int) ParamDeleteOpt {
-	return func(paramDelete *ParamDelete) {
-		paramDelete.index = index
+	return func(pd *paramDelete) {
+		pd.index = index
 	}
 }
 
 // ParamDelete deletes a parameter from a component.
-type ParamDelete struct {
+type paramDelete struct {
 	componentName string
 	rawPath       string
 	index         int
@@ -27,28 +37,28 @@ type ParamDelete struct {
 	*base
 }
 
-// NewParamDelete creates an instance of ParamDelete.
-func NewParamDelete(fs afero.Fs, componentName, path string, opts ...ParamDeleteOpt) (*ParamDelete, error) {
+// newParamDelete creates an instance of ParamDelete.
+func newParamDelete(fs afero.Fs, componentName, path string, opts ...ParamDeleteOpt) (*paramDelete, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
 	}
 
-	paramDelete := &ParamDelete{
+	pd := &paramDelete{
 		componentName: componentName,
 		rawPath:       path,
 		base:          b,
 	}
 
 	for _, opt := range opts {
-		opt(paramDelete)
+		opt(pd)
 	}
 
-	return paramDelete, nil
+	return pd, nil
 }
 
 // Run runs the action.
-func (ps *ParamDelete) Run() error {
+func (ps *paramDelete) Run() error {
 	path := strings.Split(ps.rawPath, ".")
 
 	c, err := component.ExtractComponent(ps.fs, ps.pluginEnv.AppDir, ps.componentName)

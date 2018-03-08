@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"github.com/bryanl/woowoo/action"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -33,16 +32,7 @@ var paramDeleteCmd = &cobra.Command{
 		}
 
 		indexOpt := action.ParamDeleteWithIndex(viper.GetInt("index"))
-		actionParamDelete, err := action.NewParamDelete(fs, args[0], args[1], indexOpt)
-		if err != nil {
-			return errors.Wrap(err, "unable to initialize param delete action")
-		}
-
-		if err := actionParamDelete.Run(); err != nil {
-			return errors.Wrap(err, "delete param")
-		}
-
-		return nil
+		return action.ParamDelete(fs, args[0], args[1], indexOpt)
 	},
 }
 

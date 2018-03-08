@@ -1,3 +1,5 @@
+// +build integration
+
 package integration
 
 import (
@@ -90,6 +92,32 @@ var _ = Describe("Integration", func() {
 		Context("param", func() {
 			BeforeEach(func() {
 				createDefaultComponents(te, appDir)
+			})
+
+			Context("delete", func() {
+				Context("an existing parameter", func() {
+					BeforeEach(func() {
+						co := te.runInApp(appDir, "param", "set",
+							"deployment", "metadata.name", "cert-manager2")
+						assertExitStatus(co, 0)
+					})
+
+					It("deletes a parameter for a namespace", func() {
+						co := te.runInApp(appDir, "param", "delete",
+							"deployment", "metadata.name")
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "param", "list")
+						assertOutput("param_list_empty.txt", co.stdout)
+					})
+				})
+				Context("without an existing parameter", func() {
+					It("deletes a parameter for a namespace", func() {
+						co := te.runInApp(appDir, "param", "delete",
+							"deployment", "metadata.name")
+						assertExitStatus(co, 1)
+					})
+				})
 			})
 
 			Context("list", func() {
