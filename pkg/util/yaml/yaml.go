@@ -26,23 +26,23 @@ func Decode(fs afero.Fs, source string) ([]io.Reader, error) {
 	}
 	defer f.Close()
 
-	bufs := make([]bytes.Buffer, 1)
+	buffer := make([]bytes.Buffer, 1)
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		t := scanner.Text()
 		if t == docSeparator {
-			bufs = append(bufs, bytes.Buffer{})
+			buffer = append(buffer, bytes.Buffer{})
 			continue
 		}
 
-		bufs[len(bufs)-1].WriteString(t)
-		bufs[len(bufs)-1].WriteByte('\n')
+		buffer[len(buffer)-1].WriteString(t)
+		buffer[len(buffer)-1].WriteByte('\n')
 	}
 
 	var readers []io.Reader
-	for i := range bufs {
-		readers = append(readers, &bufs[i])
+	for i := range buffer {
+		readers = append(readers, &buffer[i])
 	}
 
 	return readers, nil

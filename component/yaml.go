@@ -93,20 +93,23 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 		return nil, errors.Wrap(err, "could not find components")
 	}
 
-	re, err := regexp.Compile(fmt.Sprintf(`^(%s-\d+)$`, y.componentName()))
+	re, err := regexp.Compile(fmt.Sprintf(`^%s-(\d+)$`, y.componentName()))
 	if err != nil {
 		return nil, err
 	}
 
 	var params []NamespaceParameter
 	for componentName, componentValue := range props {
-		if re.MatchString(componentName) {
+		matches := re.FindAllStringSubmatch(componentName, 1)
+		if len(matches) > 0 {
+			index := matches[0][1]
+
 			m, ok := componentValue.(map[string]interface{})
 			if !ok {
 				return nil, errors.Errorf("component value for %q was not a map", componentName)
 			}
 
-			childParams, err := y.paramValues(componentName, m, nil)
+			childParams, err := y.paramValues(y.componentName(), index, m, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -129,7 +132,7 @@ func isLeaf(m map[string]interface{}) bool {
 	return allLiterals
 }
 
-func (y *YAML) paramValues(componentName string, m map[string]interface{}, path []string) ([]NamespaceParameter, error) {
+func (y *YAML) paramValues(componentName, index string, m map[string]interface{}, path []string) ([]NamespaceParameter, error) {
 	var params []NamespaceParameter
 
 	if isLeaf(m) {
@@ -145,6 +148,7 @@ func (y *YAML) paramValues(componentName string, m map[string]interface{}, path 
 		key := strings.Join(path, ".")
 		p := NamespaceParameter{
 			Component: componentName,
+			Index:     index,
 			Key:       key,
 			Value:     s,
 		}
@@ -161,6 +165,7 @@ func (y *YAML) paramValues(componentName string, m map[string]interface{}, path 
 			s = fmt.Sprintf("%#v", v)
 			p := NamespaceParameter{
 				Component: componentName,
+				Index:     index,
 				Key:       k,
 				Value:     s,
 			}
@@ -168,7 +173,7 @@ func (y *YAML) paramValues(componentName string, m map[string]interface{}, path 
 
 		case map[string]interface{}:
 			childPath := append(path, k)
-			childParams, err := y.paramValues(componentName, t, childPath)
+			childParams, err := y.paramValues(componentName, index, t, childPath)
 			if err != nil {
 				return nil, err
 			}

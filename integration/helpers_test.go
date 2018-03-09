@@ -22,7 +22,10 @@ func assertOutput(name, output string) {
 	b, err := ioutil.ReadFile(path)
 	ExpectWithOffset(1, err).To(Not(HaveOccurred()))
 
-	Expect(output).To(Equal(string(b)), "output did not match")
+	Expect(output).To(Equal(string(b)),
+		"expected output to be:\n%s\nit was:\n%s\n",
+		string(b), output)
+
 }
 
 func assertExitStatus(co *cmdOutput, status int) {

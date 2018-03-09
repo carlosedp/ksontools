@@ -1,2 +1,2 @@
-COMPONENT KEY VALUE
-========= === =====
+COMPONENT INDEX KEY VALUE
+========= ===== === =====

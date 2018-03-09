@@ -20,7 +20,15 @@ func TestYAML_Params(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, params, 1)
-	require.Equal(t, "metadata.labels", params[0].Key)
+
+	param := params[0]
+	expected := NamespaceParameter{
+		Component: "deployment",
+		Index:     "0",
+		Key:       "metadata.labels",
+		Value:     `{"label1":"label1","label2":"label2"}`,
+	}
+	require.Equal(t, expected, param)
 }
 
 func TestYAML_Objects_no_params(t *testing.T) {

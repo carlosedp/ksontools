@@ -115,6 +115,7 @@ func (n *Namespace) Dir() string {
 // NamespaceParameter is a namespaced paramater.
 type NamespaceParameter struct {
 	Component string
+	Index     string
 	Key       string
 	Value     string
 }

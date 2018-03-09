@@ -51,9 +51,9 @@ func (pl *paramList) run() error {
 
 	table := ksutil.NewTable(os.Stdout)
 
-	table.SetHeader([]string{"COMPONENT", "KEY", "VALUE"})
+	table.SetHeader([]string{"COMPONENT", "INDEX", "KEY", "VALUE"})
 	for _, data := range paramData {
-		table.Append([]string{data.Component, data.Key, data.Value})
+		table.Append([]string{data.Component, data.Index, data.Key, data.Value})
 	}
 
 	table.Render()
