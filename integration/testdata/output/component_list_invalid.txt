@@ -3,7 +3,8 @@ Usage:
   kscomp component list [flags]
 
 Flags:
-  -h, --help        help for list
-      --ns string   Component namespace
+  -h, --help            help for list
+      --ns string       Component namespace
+  -o, --output string   Output format. Valid options: wide
 
 exit status 1

@@ -1,0 +1,2 @@
+COMPONENT TYPE APIVERSION KIND NAME
+========= ==== ========== ==== ====

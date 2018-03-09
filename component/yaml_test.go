@@ -183,6 +183,37 @@ func TestYAML_DeleteParam(t *testing.T) {
 	require.Equal(t, string(expected), string(b))
 }
 
+func TestYAML_Summarize(t *testing.T) {
+	fs := afero.NewMemMapFs()
+
+	stageFile(t, fs, "rbac.yaml", "/rbac.yaml")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
+
+	y := NewYAML(fs, "/rbac.yaml", "/params.libsonnet")
+
+	list, err := y.Summarize()
+	require.NoError(t, err)
+
+	expected := []Summary{
+		{
+			ComponentName: "rbac",
+			Type:          "yaml",
+			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
+			Kind:          "ClusterRole",
+			Name:          "cert-manager",
+		},
+		{
+			ComponentName: "rbac",
+			Type:          "yaml",
+			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
+			Kind:          "ClusterRoleBinding",
+			Name:          "cert-manager",
+		},
+	}
+
+	require.Equal(t, expected, list)
+}
+
 func Test_mapToPaths(t *testing.T) {
 	m := map[string]interface{}{
 		"metadata": map[string]interface{}{

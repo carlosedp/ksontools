@@ -14,6 +14,7 @@ import (
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
+	utilyaml "github.com/bryanl/woowoo/pkg/util/yaml"
 	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -414,6 +415,40 @@ func (y *YAML) readObject() ([]runtime.Object, error) {
 		ret = append(ret, obj)
 	}
 	return ret, nil
+}
+
+// Summarize generates a summary for a YAML component. For each manifest, it will
+// return a slice of summaries of resources described.
+func (y *YAML) Summarize() ([]Summary, error) {
+	var summaries []Summary
+
+	readers, err := utilyaml.Decode(y.fs, y.source)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range readers {
+		ts, props, err := ImportYaml(r)
+		if err != nil {
+			return nil, err
+		}
+
+		name, err := props.Name()
+		if err != nil {
+			return nil, err
+		}
+
+		summary := Summary{
+			ComponentName: y.Name(),
+			Type:          "yaml",
+			APIVersion:    ts.apiVersion,
+			Kind:          ts.kind,
+			Name:          name,
+		}
+		summaries = append(summaries, summary)
+	}
+
+	return summaries, nil
 }
 
 type paramPath struct {

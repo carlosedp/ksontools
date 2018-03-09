@@ -15,6 +15,15 @@ type ParamOptions struct {
 	Index int
 }
 
+// Summary summarizes items found in components.
+type Summary struct {
+	ComponentName string
+	Type          string
+	APIVersion    string
+	Kind          string
+	Name          string
+}
+
 // Component is a ksonnet Component interface.
 type Component interface {
 	Name() string
@@ -22,6 +31,7 @@ type Component interface {
 	SetParam(path []string, value interface{}, options ParamOptions) error
 	DeleteParam(path []string, options ParamOptions) error
 	Params() ([]NamespaceParameter, error)
+	Summarize() ([]Summary, error)
 }
 
 const (

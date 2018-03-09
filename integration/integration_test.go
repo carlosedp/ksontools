@@ -58,6 +58,34 @@ var _ = Describe("Integration", func() {
 						assertOutput("component_list_invalid.txt", co.stderr)
 					})
 				})
+
+				Context("in wide format", func() {
+					Context("with a namespace which has components", func() {
+						It("lists the components in a namespace", func() {
+							createDefaultComponents(te, appDir)
+
+							co := te.runInApp(appDir, "component", "list", "-o", "wide")
+							assertExitStatus(co, 0)
+							assertOutput("component_list_wide.txt", co.stdout)
+						})
+					})
+					Context("with a namespace which has no components", func() {
+						It("returns an empty list", func() {
+							co := te.runInApp(appDir, "component", "list", "-o", "wide")
+							assertExitStatus(co, 0)
+
+							assertOutput("component_list_wide_empty.txt", co.stdout)
+						})
+					})
+					Context("with an invalid namespace", func() {
+						It("returns an empty list", func() {
+							co := te.runInApp(appDir, "component", "list", "--ns", "invalid", "-o", "wide")
+							assertExitStatus(co, 1)
+
+							assertOutput("component_list_invalid.txt", co.stderr)
+						})
+					})
+				})
 			})
 		})
 

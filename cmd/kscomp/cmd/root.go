@@ -26,6 +26,7 @@ import (
 
 var (
 	flagNamespace = "ns"
+	flagOutput    = "output"
 )
 
 var fs = afero.NewOsFs()

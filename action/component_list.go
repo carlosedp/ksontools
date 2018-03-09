@@ -6,12 +6,13 @@ import (
 
 	"github.com/bryanl/woowoo/component"
 	"github.com/bryanl/woowoo/ksutil"
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
 // ComponentList create a list of components in a namespace.
-func ComponentList(fs afero.Fs, namespace string) error {
-	cl, err := newComponentList(fs, namespace)
+func ComponentList(fs afero.Fs, namespace, output string) error {
+	cl, err := newComponentList(fs, namespace, output)
 	if err != nil {
 		return err
 	}
@@ -21,11 +22,12 @@ func ComponentList(fs afero.Fs, namespace string) error {
 
 type componentList struct {
 	nsName string
+	output string
 
 	*base
 }
 
-func newComponentList(fs afero.Fs, namespace string) (*componentList, error) {
+func newComponentList(fs afero.Fs, namespace, output string) (*componentList, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
@@ -33,6 +35,7 @@ func newComponentList(fs afero.Fs, namespace string) (*componentList, error) {
 
 	cl := &componentList{
 		nsName: namespace,
+		output: output,
 		base:   b,
 	}
 
@@ -50,6 +53,21 @@ func (cl *componentList) run() error {
 		return err
 	}
 
+	switch cl.output {
+	default:
+		return errors.Errorf("invalid output option %q", cl.output)
+	case "":
+		cl.listComponents(components)
+	case "wide":
+		if err := cl.listComponentsWide(components); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (cl *componentList) listComponents(components []component.Component) {
 	var list []string
 	for _, c := range components {
 		list = append(list, c.Name())
@@ -62,6 +80,34 @@ func (cl *componentList) run() error {
 	for _, item := range list {
 		table.Append([]string{item})
 	}
+	table.Render()
+}
+
+func (cl *componentList) listComponentsWide(components []component.Component) error {
+	var rows [][]string
+	for _, c := range components {
+		summaries, err := c.Summarize()
+		if err != nil {
+			return err
+		}
+
+		for _, summary := range summaries {
+			row := []string{
+				summary.ComponentName,
+				summary.Type,
+				summary.APIVersion,
+				summary.Kind,
+				summary.Name,
+			}
+
+			rows = append(rows, row)
+
+		}
+	}
+
+	table := ksutil.NewTable(os.Stdout)
+	table.SetHeader([]string{"component", "type", "apiversion", "kind", "name"})
+	table.AppendBulk(rows)
 	table.Render()
 
 	return nil
