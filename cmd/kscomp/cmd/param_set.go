@@ -16,10 +16,13 @@ package cmd
 
 import (
 	"github.com/bryanl/woowoo/action"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+)
+
+const (
+	vParamSetIndex = "param-set-index"
 )
 
 // setCmd represents the set command
@@ -32,25 +35,16 @@ var paramSetCmd = &cobra.Command{
 			logrus.Fatal("set <component-name> <param-key> <param-value>")
 		}
 
-		indexOpt := action.ParamSetWithIndex(viper.GetInt("index"))
-		actionParamSet, err := action.NewParamSet(fs, args[0], args[1], args[2], indexOpt)
-		if err != nil {
-			return errors.Wrap(err, "unable to initialize param set action")
-		}
-
-		if err := actionParamSet.Run(); err != nil {
-			return errors.Wrap(err, "set param")
-		}
-
-		return nil
+		indexOpt := action.ParamSetWithIndex(viper.GetInt(vParamSetIndex))
+		return action.ParamSet(fs, args[0], args[1], args[2], indexOpt)
 	},
 }
 
 func init() {
 	paramCmd.AddCommand(paramSetCmd)
 
-	paramSetCmd.Flags().IntP("index", "i", 0, "Index in manifest")
-	viper.BindPFlag("index", paramSetCmd.Flags().Lookup("index"))
+	paramSetCmd.Flags().IntP(flagIndex, "i", 0, "Index in manifest")
+	viper.BindPFlag(vParamSetIndex, paramSetCmd.Flags().Lookup(flagIndex))
 
 	// TODO: support env
 }

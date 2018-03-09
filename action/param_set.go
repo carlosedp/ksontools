@@ -9,18 +9,28 @@ import (
 	"github.com/spf13/afero"
 )
 
-// ParamSetOpt is an option for configuration ParamSet.
-type ParamSetOpt func(*ParamSet)
+// ParamSet sets a parameter for a component.
+func ParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSetOpt) error {
+	ps, err := newParamSet(fs, componentName, path, value, opts...)
+	if err != nil {
+		return err
+	}
+
+	return ps.Run()
+}
+
+// ParamSetOpt is an option for configuring ParamSet.
+type ParamSetOpt func(*paramSet)
 
 // ParamSetWithIndex sets the index for the set option.
 func ParamSetWithIndex(index int) ParamSetOpt {
-	return func(paramSet *ParamSet) {
+	return func(paramSet *paramSet) {
 		paramSet.index = index
 	}
 }
 
 // ParamSet sets a parameter for a component.
-type ParamSet struct {
+type paramSet struct {
 	componentName string
 	rawPath       string
 	rawValue      string
@@ -30,13 +40,13 @@ type ParamSet struct {
 }
 
 // NewParamSet creates an instance of ParamSet.
-func NewParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSetOpt) (*ParamSet, error) {
+func newParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSetOpt) (*paramSet, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
 	}
 
-	paramSet := &ParamSet{
+	ps := &paramSet{
 		componentName: componentName,
 		rawPath:       path,
 		rawValue:      value,
@@ -44,14 +54,14 @@ func NewParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSe
 	}
 
 	for _, opt := range opts {
-		opt(paramSet)
+		opt(ps)
 	}
 
-	return paramSet, nil
+	return ps, nil
 }
 
 // Run runs the action.
-func (ps *ParamSet) Run() error {
+func (ps *paramSet) Run() error {
 	path := strings.Split(ps.rawPath, ".")
 
 	value, err := params.DecodeValue(ps.rawValue)
