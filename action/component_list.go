@@ -1,10 +1,11 @@
 package action
 
 import (
-	"fmt"
+	"os"
 	"sort"
 
 	"github.com/bryanl/woowoo/component"
+	"github.com/bryanl/woowoo/ksutil"
 	"github.com/spf13/afero"
 )
 
@@ -56,12 +57,12 @@ func (cl *componentList) run() error {
 
 	sort.Strings(list)
 
-	fmt.Println("COMPONENT")
-	fmt.Println("=========")
-
-	for _, name := range list {
-		fmt.Println(name)
+	table := ksutil.NewTable(os.Stdout)
+	table.SetHeader([]string{"component"})
+	for _, item := range list {
+		table.Append([]string{item})
 	}
+	table.Render()
 
 	return nil
 }
