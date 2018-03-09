@@ -197,6 +197,7 @@ func TestYAML_Summarize(t *testing.T) {
 	expected := []Summary{
 		{
 			ComponentName: "rbac",
+			Index:         "0",
 			Type:          "yaml",
 			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
 			Kind:          "ClusterRole",
@@ -204,6 +205,7 @@ func TestYAML_Summarize(t *testing.T) {
 		},
 		{
 			ComponentName: "rbac",
+			Index:         "1",
 			Type:          "yaml",
 			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
 			Kind:          "ClusterRoleBinding",

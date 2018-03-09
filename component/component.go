@@ -18,6 +18,7 @@ type ParamOptions struct {
 // Summary summarizes items found in components.
 type Summary struct {
 	ComponentName string
+	Index         string
 	Type          string
 	APIVersion    string
 	Kind          string

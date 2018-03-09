@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/bryanl/woowoo/jsonnetutil"
@@ -427,7 +428,7 @@ func (y *YAML) Summarize() ([]Summary, error) {
 		return nil, err
 	}
 
-	for _, r := range readers {
+	for i, r := range readers {
 		ts, props, err := ImportYaml(r)
 		if err != nil {
 			return nil, err
@@ -440,6 +441,7 @@ func (y *YAML) Summarize() ([]Summary, error) {
 
 		summary := Summary{
 			ComponentName: y.Name(),
+			Index:         strconv.Itoa(i),
 			Type:          "yaml",
 			APIVersion:    ts.apiVersion,
 			Kind:          ts.kind,

@@ -1,2 +1,2 @@
-COMPONENT TYPE APIVERSION KIND NAME
-========= ==== ========== ==== ====
+COMPONENT TYPE INDEX APIVERSION KIND NAME
+========= ==== ===== ========== ==== ====

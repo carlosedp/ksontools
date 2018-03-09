@@ -95,6 +95,7 @@ func (cl *componentList) listComponentsWide(components []component.Component) er
 			row := []string{
 				summary.ComponentName,
 				summary.Type,
+				summary.Index,
 				summary.APIVersion,
 				summary.Kind,
 				summary.Name,
@@ -106,7 +107,7 @@ func (cl *componentList) listComponentsWide(components []component.Component) er
 	}
 
 	table := ksutil.NewTable(os.Stdout)
-	table.SetHeader([]string{"component", "type", "apiversion", "kind", "name"})
+	table.SetHeader([]string{"component", "type", "index", "apiversion", "kind", "name"})
 	table.AppendBulk(rows)
 	table.Render()
 

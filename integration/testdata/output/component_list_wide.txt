@@ -1,9 +1,9 @@
-COMPONENT         TYPE APIVERSION                        KIND                     NAME
-=========         ==== ==========                        ====                     ====
-certificate-crd   yaml apiextensions.k8s.io/v1beta1      CustomResourceDefinition certificates_certmanager_k8s_io
-clusterissuer-crd yaml apiextensions.k8s.io/v1beta1      CustomResourceDefinition clusterissuers_certmanager_k8s_io
-deployment        yaml apps/v1beta1                      Deployment               cert-manager
-issuer-crd        yaml apiextensions.k8s.io/v1beta1      CustomResourceDefinition issuers_certmanager_k8s_io
-rbac              yaml rbac.authorization.k8s.io/v1beta1 ClusterRole              cert-manager
-rbac              yaml rbac.authorization.k8s.io/v1beta1 ClusterRoleBinding       cert-manager
-serviceaccount    yaml v1                                ServiceAccount           cert-manager
+COMPONENT         TYPE INDEX APIVERSION                        KIND                     NAME
+=========         ==== ===== ==========                        ====                     ====
+certificate-crd   yaml 0     apiextensions.k8s.io/v1beta1      CustomResourceDefinition certificates_certmanager_k8s_io
+clusterissuer-crd yaml 0     apiextensions.k8s.io/v1beta1      CustomResourceDefinition clusterissuers_certmanager_k8s_io
+deployment        yaml 0     apps/v1beta1                      Deployment               cert-manager
+issuer-crd        yaml 0     apiextensions.k8s.io/v1beta1      CustomResourceDefinition issuers_certmanager_k8s_io
+rbac              yaml 0     rbac.authorization.k8s.io/v1beta1 ClusterRole              cert-manager
+rbac              yaml 1     rbac.authorization.k8s.io/v1beta1 ClusterRoleBinding       cert-manager
+serviceaccount    yaml 0     v1                                ServiceAccount           cert-manager
