@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bryanl/woowoo/ksutil"
+
 	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
@@ -62,16 +64,21 @@ func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 
 // YAML represents a YAML component.
 type YAML struct {
+	app        ksutil.SuperApp
 	source     string
-	fs         afero.Fs
 	paramsPath string
+	libPather  libPather
 }
 
 var _ Component = (*YAML)(nil)
 
 // NewYAML creates an instance of YAML.
-func NewYAML(fs afero.Fs, source, paramsPath string) *YAML {
-	return &YAML{fs: fs, source: source, paramsPath: paramsPath}
+func NewYAML(app ksutil.SuperApp, source, paramsPath string) *YAML {
+	return &YAML{
+		app:        app,
+		source:     source,
+		paramsPath: paramsPath,
+	}
 }
 
 // Name is the component name.
@@ -81,6 +88,19 @@ func (y *YAML) Name() string {
 
 // Params returns params for a component.
 func (y *YAML) Params() ([]NamespaceParameter, error) {
+	libPath, err := y.app.LibPath("default")
+	if err != nil {
+		return nil, err
+	}
+
+	k8sPath := filepath.Join(libPath, "k8s.libsonnet")
+	obj, err := jsonnetutil.ImportFromFs(k8sPath, y.app.Fs())
+	if err != nil {
+		return nil, err
+	}
+
+	ve := NewValueExtractor(obj)
+
 	// find all the params for this component
 	// keys will look like `component-id`
 	paramsData, err := y.readParams()
@@ -98,18 +118,37 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 		return nil, err
 	}
 
+	readers, err := utilyaml.Decode(y.app.Fs(), y.source)
+	if err != nil {
+		return nil, err
+	}
+
 	var params []NamespaceParameter
 	for componentName, componentValue := range props {
 		matches := re.FindAllStringSubmatch(componentName, 1)
 		if len(matches) > 0 {
 			index := matches[0][1]
+			i, err := strconv.Atoi(index)
+			if err != nil {
+				return nil, err
+			}
+
+			ts, props, err := ImportYaml(readers[i])
+			if err != nil {
+				return nil, err
+			}
+
+			valueMap, err := ve.Extract(ts.GVK(), props)
+			if err != nil {
+				return nil, err
+			}
 
 			m, ok := componentValue.(map[string]interface{})
 			if !ok {
 				return nil, errors.Errorf("component value for %q was not a map", componentName)
 			}
 
-			childParams, err := y.paramValues(y.componentName(), index, m, nil)
+			childParams, err := y.paramValues(y.componentName(), index, valueMap, m, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -121,76 +160,73 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 	return params, nil
 }
 
-func isLeaf(m map[string]interface{}) bool {
-	allLiterals := true
-	for _, v := range m {
-		if _, ok := v.(map[string]interface{}); ok {
-			allLiterals = false
+func isLeaf(path []string, key string, valueMap map[string]Values) (string, bool) {
+	childPath := strings.Join(append(path, key), ".")
+	for _, v := range valueMap {
+		if strings.Join(v.Lookup, ".") == childPath {
+			return childPath, true
 		}
 	}
 
-	return allLiterals
+	return "", false
 }
 
-func (y *YAML) paramValues(componentName, index string, m map[string]interface{}, path []string) ([]NamespaceParameter, error) {
+func (y *YAML) paramValues(componentName, index string, valueMap map[string]Values, m map[string]interface{}, path []string) ([]NamespaceParameter, error) {
 	var params []NamespaceParameter
 
-	if isLeaf(m) {
-		if len(m) == 0 {
-			return params, nil
-		}
-		b, err := json.Marshal(&m)
-		if err != nil {
-			return nil, err
-		}
-		s := string(b)
-
-		key := strings.Join(path, ".")
-		p := NamespaceParameter{
-			Component: componentName,
-			Index:     index,
-			Key:       key,
-			Value:     s,
-		}
-
-		params = append(params, p)
-		return params, nil
-	}
-
 	for k, v := range m {
-
 		var s string
 		switch t := v.(type) {
 		default:
-			s = fmt.Sprintf("%#v", v)
-			p := NamespaceParameter{
-				Component: componentName,
-				Index:     index,
-				Key:       k,
-				Value:     s,
+			if childPath, exists := isLeaf(path, k, valueMap); exists {
+				s = fmt.Sprintf("%v", v)
+				p := NamespaceParameter{
+					Component: componentName,
+					Index:     index,
+					Key:       childPath,
+					Value:     s,
+				}
+				params = append(params, p)
 			}
-			params = append(params, p)
 
 		case map[string]interface{}:
-			childPath := append(path, k)
-			childParams, err := y.paramValues(componentName, index, t, childPath)
-			if err != nil {
-				return nil, err
-			}
+			if childPath, exists := isLeaf(path, k, valueMap); exists {
+				b, err := json.Marshal(&v)
+				if err != nil {
+					return nil, err
+				}
+				s = string(b)
+				p := NamespaceParameter{
+					Component: componentName,
+					Index:     index,
+					Key:       childPath,
+					Value:     s,
+				}
+				params = append(params, p)
+			} else {
+				childPath := append(path, k)
+				childParams, err := y.paramValues(componentName, index, valueMap, t, childPath)
+				if err != nil {
+					return nil, err
+				}
 
-			params = append(params, childParams...)
+				params = append(params, childParams...)
+			}
 		case []interface{}:
-			b, err := json.Marshal(&v)
-			if err != nil {
-				return nil, err
+			if childPath, exists := isLeaf(path, k, valueMap); exists {
+				b, err := json.Marshal(&v)
+				if err != nil {
+					return nil, err
+				}
+				s = string(b)
+				p := NamespaceParameter{
+					Component: componentName,
+					Index:     index,
+					Key:       childPath,
+					Value:     s,
+				}
+				params = append(params, p)
 			}
-			s = string(b)
-			p := NamespaceParameter{
-				Component: componentName,
-				Key:       k,
-				Value:     s,
-			}
-			params = append(params, p)
 		}
 
 	}
@@ -291,7 +327,7 @@ func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
 }
 
 func (y *YAML) readParams() (string, error) {
-	b, err := afero.ReadFile(y.fs, y.paramsPath)
+	b, err := afero.ReadFile(y.app.Fs(), y.paramsPath)
 	if err != nil {
 		return "", err
 	}
@@ -300,14 +336,14 @@ func (y *YAML) readParams() (string, error) {
 }
 
 func (y *YAML) writeParams(src string) error {
-	return afero.WriteFile(y.fs, y.paramsPath, []byte(src), 0644)
+	return afero.WriteFile(y.app.Fs(), y.paramsPath, []byte(src), 0644)
 }
 
 func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 	dir := filepath.Dir(y.source)
 	paramsFile := filepath.Join(dir, "params.libsonnet")
 
-	b, err := afero.ReadFile(y.fs, paramsFile)
+	b, err := afero.ReadFile(y.app.Fs(), paramsFile)
 	if err != nil {
 		return nil, err
 	}
@@ -365,12 +401,12 @@ func (y *YAML) hasParams() (bool, error) {
 	dir := filepath.Dir(y.source)
 	paramsFile := filepath.Join(dir, "params.libsonnet")
 
-	exists, err := afero.Exists(y.fs, paramsFile)
+	exists, err := afero.Exists(y.app.Fs(), paramsFile)
 	if err != nil || !exists {
 		return false, nil
 	}
 
-	paramsObj, err := jsonnetutil.ImportFromFs(paramsFile, y.fs)
+	paramsObj, err := jsonnetutil.ImportFromFs(paramsFile, y.app.Fs())
 	if err != nil {
 		return false, errors.Wrap(err, "import params")
 	}
@@ -393,7 +429,7 @@ func (y *YAML) componentName() string {
 }
 
 func (y *YAML) readObject() ([]runtime.Object, error) {
-	f, err := y.fs.Open(y.source)
+	f, err := y.app.Fs().Open(y.source)
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +464,7 @@ func (y *YAML) readObject() ([]runtime.Object, error) {
 func (y *YAML) Summarize() ([]Summary, error) {
 	var summaries []Summary
 
-	readers, err := utilyaml.Decode(y.fs, y.source)
+	readers, err := utilyaml.Decode(y.app.Fs(), y.source)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +482,7 @@ func (y *YAML) Summarize() ([]Summary, error) {
 
 		summary := Summary{
 			ComponentName: y.Name(),
-			Index:         strconv.Itoa(i),
+			IndexStr:      strconv.Itoa(i),
 			Type:          "yaml",
 			APIVersion:    ts.apiVersion,
 			Kind:          ts.kind,

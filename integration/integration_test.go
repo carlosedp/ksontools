@@ -146,6 +146,23 @@ var _ = Describe("Integration", func() {
 						assertExitStatus(co, 1)
 					})
 				})
+
+				Context("an item with an index", func() {
+					BeforeEach(func() {
+						co := te.runInApp(appDir, "param", "set",
+							"rbac", "metadata.name", "cert-manager2", "-i", "1")
+						assertExitStatus(co, 0)
+					})
+
+					It("deletes a parameter", func() {
+						co := te.runInApp(appDir, "param", "delete",
+							"rbac", "metadata.name", "-i", "1")
+						assertExitStatus(co, 0)
+
+						co = te.runInApp(appDir, "param", "list")
+						assertOutput("param_list_empty.txt", co.stdout)
+					})
+				})
 			})
 
 			Context("list", func() {

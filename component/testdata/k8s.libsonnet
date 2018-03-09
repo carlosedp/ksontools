@@ -1,5 +1,6 @@
 {
   "__ksonnet": {
+    checksum: "30c5218bc91a1e6180c2abfbfd1d7053e35ca51c6695ff878d3ed6d43bc5570b",
     kubernetesVersion: "1.8.7",
   },
   admissionregistration:: {
@@ -5625,6 +5626,8 @@
               withEndpoints(endpoints):: self + __glusterfsMixin({endpoints: endpoints}),
               // Path is the Glusterfs volume path. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
               withPath(path):: self + __glusterfsMixin({path: path}),
+              // ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+              withReadOnly(readOnly):: self + __glusterfsMixin({readOnly: readOnly}),
             },
             glusterfsType:: hidden.core.v1.glusterfsVolumeSource,
             // HostPath represents a directory on the host. Provisioned by a developer or tester. This is useful for single-node development and testing only! On-host storage is not supported in any way and WILL NOT WORK in a multi-node cluster. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
@@ -5691,6 +5694,8 @@
               mixinInstance(nfs):: __nfsMixin(nfs),
               // Path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withPath(path):: self + __nfsMixin({path: path}),
+              // ReadOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+              withReadOnly(readOnly):: self + __nfsMixin({readOnly: readOnly}),
               // Server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withServer(server):: self + __nfsMixin({server: server}),
             },
@@ -5725,6 +5730,8 @@
               mixinInstance(quobyte):: __quobyteMixin(quobyte),
               // Group to map volume access to Default is no group
               withGroup(group):: self + __quobyteMixin({group: group}),
+              // ReadOnly here will force the Quobyte volume to be mounted with read-only permissions. Defaults to false.
+              withReadOnly(readOnly):: self + __quobyteMixin({readOnly: readOnly}),
               // Registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes
               withRegistry(registry):: self + __quobyteMixin({registry: registry}),
               // User to map volume access to Defaults to serivceaccount user
@@ -8454,11 +8461,11 @@
     },
   },
   meta:: {
-    v1beta1:: {
-      local apiVersion = {apiVersion: "policy/v1beta1"},
+    v1:: {
+      local apiVersion = {apiVersion: "v1"},
       // Patch is provided to give a concrete name and type to the Kubernetes PATCH request body.
-      podDisruptionBudget:: {
-        local kind = {kind: "PodDisruptionBudget"},
+      node:: {
+        local kind = {kind: "Node"},
         new():: apiVersion + kind,
         mixin:: {
         },
@@ -16417,6 +16424,8 @@
           withEndpoints(endpoints):: self + {endpoints: endpoints},
           // Path is the Glusterfs volume path. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
           withPath(path):: self + {path: path},
+          // ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+          withReadOnly(readOnly):: self + {readOnly: readOnly},
           mixin:: {
           },
         },
@@ -16781,6 +16790,8 @@
           new():: {},
           // Path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
           withPath(path):: self + {path: path},
+          // ReadOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+          withReadOnly(readOnly):: self + {readOnly: readOnly},
           // Server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
           withServer(server):: self + {server: server},
           mixin:: {
@@ -17396,6 +17407,8 @@
               withEndpoints(endpoints):: self + __glusterfsMixin({endpoints: endpoints}),
               // Path is the Glusterfs volume path. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
               withPath(path):: self + __glusterfsMixin({path: path}),
+              // ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+              withReadOnly(readOnly):: self + __glusterfsMixin({readOnly: readOnly}),
             },
             glusterfsType:: hidden.core.v1.glusterfsVolumeSource,
             // HostPath represents a directory on the host. Provisioned by a developer or tester. This is useful for single-node development and testing only! On-host storage is not supported in any way and WILL NOT WORK in a multi-node cluster. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
@@ -17458,6 +17471,8 @@
               mixinInstance(nfs):: __nfsMixin(nfs),
               // Path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withPath(path):: self + __nfsMixin({path: path}),
+              // ReadOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+              withReadOnly(readOnly):: self + __nfsMixin({readOnly: readOnly}),
               // Server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withServer(server):: self + __nfsMixin({server: server}),
             },
@@ -17490,6 +17505,8 @@
               mixinInstance(quobyte):: __quobyteMixin(quobyte),
               // Group to map volume access to Default is no group
               withGroup(group):: self + __quobyteMixin({group: group}),
+              // ReadOnly here will force the Quobyte volume to be mounted with read-only permissions. Defaults to false.
+              withReadOnly(readOnly):: self + __quobyteMixin({readOnly: readOnly}),
               // Registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes
               withRegistry(registry):: self + __quobyteMixin({registry: registry}),
               // User to map volume access to Defaults to serivceaccount user
@@ -18290,6 +18307,8 @@
           new():: {},
           // Group to map volume access to Default is no group
           withGroup(group):: self + {group: group},
+          // ReadOnly here will force the Quobyte volume to be mounted with read-only permissions. Defaults to false.
+          withReadOnly(readOnly):: self + {readOnly: readOnly},
           // Registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes
           withRegistry(registry):: self + {registry: registry},
           // User to map volume access to Defaults to serivceaccount user
@@ -19322,6 +19341,8 @@
               withEndpoints(endpoints):: self + __glusterfsMixin({endpoints: endpoints}),
               // Path is the Glusterfs volume path. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
               withPath(path):: self + __glusterfsMixin({path: path}),
+              // ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod
+              withReadOnly(readOnly):: self + __glusterfsMixin({readOnly: readOnly}),
             },
             glusterfsType:: hidden.core.v1.glusterfsVolumeSource,
             // HostPath represents a pre-existing file or directory on the host machine that is directly exposed to the container. This is generally used for system agents or other privileged things that are allowed to see the host machine. Most containers will NOT need this. More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
@@ -19376,6 +19397,8 @@
               mixinInstance(nfs):: __nfsMixin(nfs),
               // Path that is exported by the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withPath(path):: self + __nfsMixin({path: path}),
+              // ReadOnly here will force the NFS export to be mounted with read-only permissions. Defaults to false. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
+              withReadOnly(readOnly):: self + __nfsMixin({readOnly: readOnly}),
               // Server is the hostname or IP address of the NFS server. More info: https://kubernetes.io/docs/concepts/storage/volumes#nfs
               withServer(server):: self + __nfsMixin({server: server}),
             },
@@ -19431,6 +19454,8 @@
               mixinInstance(quobyte):: __quobyteMixin(quobyte),
               // Group to map volume access to Default is no group
               withGroup(group):: self + __quobyteMixin({group: group}),
+              // ReadOnly here will force the Quobyte volume to be mounted with read-only permissions. Defaults to false.
+              withReadOnly(readOnly):: self + __quobyteMixin({readOnly: readOnly}),
               // Registry represents a single or multiple Quobyte Registry services specified as a string as host:port pair (multiple entries are separated with commas) which acts as the central registry for volumes
               withRegistry(registry):: self + __quobyteMixin({registry: registry}),
               // User to map volume access to Defaults to serivceaccount user
@@ -19565,6 +19590,8 @@
           withMountPropagation(mountPropagation):: self + {mountPropagation: mountPropagation},
           // This must match the Name of a Volume.
           withName(name):: self + {name: name},
+          // Mounted read-only if true, read-write otherwise (false or unspecified). Defaults to false.
+          withReadOnly(readOnly):: self + {readOnly: readOnly},
           // Path within the volume from which the container's volume should be mounted. Defaults to "" (volume's root).
           withSubPath(subPath):: self + {subPath: subPath},
           mixin:: {

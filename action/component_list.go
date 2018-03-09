@@ -43,7 +43,7 @@ func newComponentList(fs afero.Fs, namespace, output string) (*componentList, er
 }
 
 func (cl *componentList) run() error {
-	ns, err := component.GetNamespace(cl.fs, cl.pluginEnv.AppDir, cl.nsName)
+	ns, err := component.GetNamespace(cl.app, cl.nsName)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (cl *componentList) listComponentsWide(components []component.Component) er
 			row := []string{
 				summary.ComponentName,
 				summary.Type,
-				summary.Index,
+				summary.IndexStr,
 				summary.APIVersion,
 				summary.Kind,
 				summary.Name,

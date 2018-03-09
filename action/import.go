@@ -39,14 +39,14 @@ func NewImport(fs afero.Fs, nsName, path string) (*Import, error) {
 
 // Run runs the import process.
 func (i *Import) Run() error {
-	pathFi, err := i.fs.Stat(i.path)
+	pathFi, err := i.app.Fs().Stat(i.path)
 	if err != nil {
 		return err
 	}
 
 	var paths []string
 	if pathFi.IsDir() {
-		fis, err := afero.ReadDir(i.fs, i.path)
+		fis, err := afero.ReadDir(i.app.Fs(), i.path)
 		if err != nil {
 			return err
 		}
@@ -84,14 +84,14 @@ func (i *Import) importFile(fileName string) error {
 
 	name.WriteString(strings.TrimSuffix(base, ext))
 
-	contents, err := afero.ReadFile(i.fs, fileName)
+	contents, err := afero.ReadFile(i.app.Fs(), fileName)
 	if err != nil {
 		return errors.Wrap(err, "read manifest")
 	}
 
 	params := ksparam.Params{}
 
-	_, err = kscomponent.Create(i.fs, i.pluginEnv.AppDir, name.String(), string(contents), params, templateType)
+	_, err = kscomponent.Create(i.app.Fs(), i.app.Root(), name.String(), string(contents), params, templateType)
 	if err != nil {
 		return errors.Wrap(err, "create component")
 	}

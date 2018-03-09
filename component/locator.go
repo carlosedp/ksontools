@@ -5,38 +5,31 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/bryanl/woowoo/ksutil"
+
 	"github.com/ksonnet/ksonnet/metadata/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
 type componentPathLocator struct {
-	fs      afero.Fs
+	app     ksutil.SuperApp
 	envSpec *app.EnvironmentSpec
 }
 
-func newComponentPathLocator(fs afero.Fs, appSpecer AppSpecer, env string) (*componentPathLocator, error) {
-	if appSpecer == nil {
-		return nil, errors.New("appSpecer is nil")
+func newComponentPathLocator(app ksutil.SuperApp, envName string) (*componentPathLocator, error) {
+	if app == nil {
+		return nil, errors.New("app is nil")
 	}
 
-	if fs == nil {
-		return nil, errors.New("fs is nil")
-	}
-
-	appSpec, err := appSpecer.AppSpec()
+	env, err := app.Environment(envName)
 	if err != nil {
-		return nil, errors.Wrap(err, "lookup application spec")
-	}
-
-	envSpec, ok := appSpec.GetEnvironmentSpec(env)
-	if !ok {
-		return nil, errors.Errorf("can't find %s environment", env)
+		return nil, err
 	}
 
 	return &componentPathLocator{
-		fs:      fs,
-		envSpec: envSpec,
+		app:     app,
+		envSpec: env,
 	}, nil
 }
 
@@ -63,7 +56,7 @@ func (cpl *componentPathLocator) Locate(root string) ([]string, error) {
 // expandPath take a root and a target and returns all the jsonnet components in descendant paths.
 func (cpl *componentPathLocator) expandPath(root, target string) ([]string, error) {
 	path := filepath.Join(root, componentsRoot, target)
-	fi, err := cpl.fs.Stat(path)
+	fi, err := cpl.app.Fs().Stat(path)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +77,7 @@ func (cpl *componentPathLocator) expandPath(root, target string) ([]string, erro
 
 	if fi.IsDir() {
 		rootPath := filepath.Join(root, componentsRoot, fi.Name())
-		if err := afero.Walk(cpl.fs, rootPath, walkFn); err != nil {
+		if err := afero.Walk(cpl.app.Fs(), rootPath, walkFn); err != nil {
 			return nil, errors.Wrapf(err, "search for components in %s", fi.Name())
 		}
 	} else if isComponent(fi.Name()) {
@@ -111,7 +104,7 @@ func (cpl *componentPathLocator) defaultPaths(root string) ([]string, error) {
 
 	componentRoot := filepath.Join(root, componentsRoot)
 
-	if err := afero.Walk(cpl.fs, componentRoot, walkFn); err != nil {
+	if err := afero.Walk(cpl.app.Fs(), componentRoot, walkFn); err != nil {
 		return nil, errors.Wrap(err, "search for components")
 	}
 

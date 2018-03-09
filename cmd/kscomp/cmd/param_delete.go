@@ -21,6 +21,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	vParamDeleteIndex = "param-delete-index"
+)
+
 // deleteCmd represents the delete command
 var paramDeleteCmd = &cobra.Command{
 	Use:   "delete",
@@ -31,7 +35,7 @@ var paramDeleteCmd = &cobra.Command{
 			logrus.Fatal("delete <component-name> <param-key> ")
 		}
 
-		indexOpt := action.ParamDeleteWithIndex(viper.GetInt("index"))
+		indexOpt := action.ParamDeleteWithIndex(viper.GetInt(vParamDeleteIndex))
 		return action.ParamDelete(fs, args[0], args[1], indexOpt)
 	},
 }
@@ -39,6 +43,6 @@ var paramDeleteCmd = &cobra.Command{
 func init() {
 	paramCmd.AddCommand(paramDeleteCmd)
 
-	paramDeleteCmd.Flags().IntP("index", "i", 0, "Index in manifest")
-	viper.BindPFlag("index", paramDeleteCmd.Flags().Lookup("index"))
+	paramDeleteCmd.Flags().IntP(flagIndex, "i", 0, "Index in manifest")
+	viper.BindPFlag(vParamDeleteIndex, paramDeleteCmd.Flags().Lookup(flagIndex))
 }

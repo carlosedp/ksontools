@@ -44,7 +44,7 @@ func (psg *ParamSetGlobal) Run() error {
 		return errors.Wrap(err, "value is invalid")
 	}
 
-	ns, err := component.GetNamespace(psg.fs, psg.pluginEnv.AppDir, psg.nsName)
+	ns, err := component.GetNamespace(psg.app, psg.nsName)
 	if err != nil {
 		return errors.Wrap(err, "retrieve namespace")
 	}

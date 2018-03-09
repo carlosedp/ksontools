@@ -4,11 +4,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ksonnet/ksonnet/metadata/app"
+	"github.com/bryanl/woowoo/ksutil"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
+
+type libPather interface {
+	LibPath(envName string) (string, error)
+}
 
 // ParamOptions is options for parameters.
 type ParamOptions struct {
@@ -18,11 +23,17 @@ type ParamOptions struct {
 // Summary summarizes items found in components.
 type Summary struct {
 	ComponentName string
-	Index         string
+	IndexStr      string
+	Index         int
 	Type          string
 	APIVersion    string
 	Kind          string
 	Name          string
+}
+
+// GVK converts a summary to a group - version - kind.
+func (s *Summary) typeSpec() (*TypeSpec, error) {
+	return NewTypeSpec(s.APIVersion, s.Kind)
 }
 
 // Component is a ksonnet Component interface.
@@ -43,10 +54,10 @@ const (
 )
 
 // Path returns returns the file system path for a component.
-func Path(fs afero.Fs, root, name string) (string, error) {
-	ns, localName := ExtractNamespacedComponent(fs, root, name)
+func Path(app ksutil.SuperApp, name string) (string, error) {
+	ns, localName := ExtractNamespacedComponent(app, name)
 
-	fis, err := afero.ReadDir(fs, ns.Dir())
+	fis, err := afero.ReadDir(app.Fs(), ns.Dir())
 	if err != nil {
 		return "", err
 	}
@@ -78,8 +89,8 @@ func Path(fs afero.Fs, root, name string) (string, error) {
 }
 
 // ExtractComponent extracts a component from a path.
-func ExtractComponent(fs afero.Fs, root, path string) (Component, error) {
-	ns, componentName := ExtractNamespacedComponent(fs, root, path)
+func ExtractComponent(app ksutil.SuperApp, path string) (Component, error) {
+	ns, componentName := ExtractNamespacedComponent(app, path)
 	members, err := ns.Components()
 	if err != nil {
 		return nil, err
@@ -111,13 +122,10 @@ func isComponentDir(fs afero.Fs, path string) (bool, error) {
 
 // AppSpecer is implemented by any value that has a AppSpec method. The AppSpec method is
 // used to retrieve a ksonnet AppSpec.
-type AppSpecer interface {
-	AppSpec() (*app.Spec, error)
-}
 
 // MakePathsByNamespace creates a map of component paths categorized by namespace.
-func MakePathsByNamespace(fs afero.Fs, appSpecer AppSpecer, root, env string) (map[Namespace][]string, error) {
-	paths, err := MakePaths(fs, appSpecer, root, env)
+func MakePathsByNamespace(app ksutil.SuperApp, env string) (map[Namespace][]string, error) {
+	paths, err := MakePaths(app, env)
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +133,12 @@ func MakePathsByNamespace(fs afero.Fs, appSpecer AppSpecer, root, env string) (m
 	m := make(map[Namespace][]string)
 
 	for i := range paths {
-		prefix := root + "/components/"
-		if strings.HasSuffix(root, "/") {
-			prefix = root + "components/"
+		prefix := app.Root() + "/components/"
+		if strings.HasSuffix(app.Root(), "/") {
+			prefix = app.Root() + "components/"
 		}
 		path := strings.TrimPrefix(paths[i], prefix)
-		ns, _ := ExtractNamespacedComponent(fs, root, path)
+		ns, _ := ExtractNamespacedComponent(app, path)
 		if _, ok := m[ns]; !ok {
 			m[ns] = make([]string, 0)
 		}
@@ -142,11 +150,11 @@ func MakePathsByNamespace(fs afero.Fs, appSpecer AppSpecer, root, env string) (m
 }
 
 // MakePaths creates a slice of component paths
-func MakePaths(fs afero.Fs, appSpecer AppSpecer, root, env string) ([]string, error) {
-	cpl, err := newComponentPathLocator(fs, appSpecer, env)
+func MakePaths(app ksutil.SuperApp, env string) ([]string, error) {
+	cpl, err := newComponentPathLocator(app, env)
 	if err != nil {
 		return nil, errors.Wrap(err, "create component path locator")
 	}
 
-	return cpl.Locate(root)
+	return cpl.Locate(app.Root())
 }

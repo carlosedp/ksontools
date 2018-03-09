@@ -59,7 +59,7 @@ func (ps *ParamSet) Run() error {
 		return errors.Wrap(err, "value is invalid")
 	}
 
-	c, err := component.ExtractComponent(ps.fs, ps.pluginEnv.AppDir, ps.componentName)
+	c, err := component.ExtractComponent(ps.app, ps.componentName)
 	if err != nil {
 		return errors.Wrap(err, "could not find component")
 	}

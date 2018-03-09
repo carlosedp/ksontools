@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	flagIndex     = "index"
 	flagNamespace = "ns"
 	flagOutput    = "output"
 )

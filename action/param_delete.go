@@ -58,16 +58,16 @@ func newParamDelete(fs afero.Fs, componentName, path string, opts ...ParamDelete
 }
 
 // Run runs the action.
-func (ps *paramDelete) Run() error {
-	path := strings.Split(ps.rawPath, ".")
+func (pd *paramDelete) Run() error {
+	path := strings.Split(pd.rawPath, ".")
 
-	c, err := component.ExtractComponent(ps.fs, ps.pluginEnv.AppDir, ps.componentName)
+	c, err := component.ExtractComponent(pd.app, pd.componentName)
 	if err != nil {
 		return errors.Wrap(err, "could not find component")
 	}
 
 	options := component.ParamOptions{
-		Index: ps.index,
+		Index: pd.index,
 	}
 	if err := c.DeleteParam(path, options); err != nil {
 		return errors.Wrap(err, "delete param")

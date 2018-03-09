@@ -39,7 +39,7 @@ func newParamList(fs afero.Fs, nsName string) (*paramList, error) {
 }
 
 func (pl *paramList) run() error {
-	ns, err := component.GetNamespace(pl.fs, pl.pluginEnv.AppDir, pl.nsName)
+	ns, err := component.GetNamespace(pl.app, pl.nsName)
 	if err != nil {
 		return errors.Wrap(err, "could not find namespace")
 	}

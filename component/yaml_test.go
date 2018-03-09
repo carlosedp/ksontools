@@ -11,11 +11,13 @@ import (
 )
 
 func TestYAML_Params(t *testing.T) {
-	fs := afero.NewMemMapFs()
-	stageFile(t, fs, "deployment.yaml", "/deployment.yaml")
-	stageFile(t, fs, "params-deployment.libsonnet", "/params.libsonnet")
+	app, fs := appMock("/")
 
-	y := NewYAML(fs, "/deployment.yaml", "/params.libsonnet")
+	stageFile(t, fs, "params-mixed.libsonnet", "/components/params.libsonnet")
+	stageFile(t, fs, "deployment.yaml", "/components/deployment.yaml")
+	stageFile(t, fs, "k8s.libsonnet", "/lib/v1.8.7/k8s.libsonnet")
+
+	y := NewYAML(app, "/components/deployment.yaml", "/components/params.libsonnet")
 	params, err := y.Params()
 	require.NoError(t, err)
 
@@ -31,12 +33,36 @@ func TestYAML_Params(t *testing.T) {
 	require.Equal(t, expected, param)
 }
 
+func TestYAML_Params_literal(t *testing.T) {
+	app, fs := appMock("/")
+
+	stageFile(t, fs, "params-mixed.libsonnet", "/params.libsonnet")
+	stageFile(t, fs, "rbac.yaml", "/rbac.yaml")
+	stageFile(t, fs, "k8s.libsonnet", "/lib/v1.8.7/k8s.libsonnet")
+
+	y := NewYAML(app, "/rbac.yaml", "/params.libsonnet")
+	params, err := y.Params()
+	require.NoError(t, err)
+
+	require.Len(t, params, 1)
+
+	param := params[0]
+	expected := NamespaceParameter{
+		Component: "rbac",
+		Index:     "1",
+		Key:       "metadata.name",
+		Value:     "cert-manager2",
+	}
+	require.Equal(t, expected, param)
+}
+
 func TestYAML_Objects_no_params(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
+
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -72,12 +98,12 @@ func TestYAML_Objects_no_params(t *testing.T) {
 }
 
 func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
 
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -113,12 +139,12 @@ func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
 }
 
 func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
 
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects()
 	require.NoError(t, err)
@@ -154,12 +180,12 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 }
 
 func TestYAML_SetParam(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
 
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
 	err := y.SetParam([]string{"spec", "version"}, "v2", ParamOptions{})
 	require.NoError(t, err)
@@ -173,12 +199,12 @@ func TestYAML_SetParam(t *testing.T) {
 }
 
 func TestYAML_DeleteParam(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
 
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(fs, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
 	err := y.DeleteParam([]string{"spec", "version"}, ParamOptions{})
 	require.NoError(t, err)
@@ -192,12 +218,12 @@ func TestYAML_DeleteParam(t *testing.T) {
 }
 
 func TestYAML_Summarize(t *testing.T) {
-	fs := afero.NewMemMapFs()
+	app, fs := appMock("/")
 
-	stageFile(t, fs, "rbac.yaml", "/rbac.yaml")
-	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
+	stageFile(t, fs, "rbac.yaml", "/components/rbac.yaml")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/components/params.libsonnet")
 
-	y := NewYAML(fs, "/rbac.yaml", "/params.libsonnet")
+	y := NewYAML(app, "/components/rbac.yaml", "/components/params.libsonnet")
 
 	list, err := y.Summarize()
 	require.NoError(t, err)
@@ -205,7 +231,7 @@ func TestYAML_Summarize(t *testing.T) {
 	expected := []Summary{
 		{
 			ComponentName: "rbac",
-			Index:         "0",
+			IndexStr:      "0",
 			Type:          "yaml",
 			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
 			Kind:          "ClusterRole",
@@ -213,7 +239,7 @@ func TestYAML_Summarize(t *testing.T) {
 		},
 		{
 			ComponentName: "rbac",
-			Index:         "1",
+			IndexStr:      "1",
 			Type:          "yaml",
 			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
 			Kind:          "ClusterRoleBinding",

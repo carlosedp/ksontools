@@ -49,8 +49,7 @@ func NewShow(fs afero.Fs, env string, opts ...ShowOpt) (*Show, error) {
 
 // Run runs the action.
 func (s *Show) Run() error {
-	app := ksutil.NewApp(s.fs, s.pluginEnv.AppDir)
-	namespaces, err := component.NamespacesFromEnv(s.fs, app, s.pluginEnv.AppDir, s.env)
+	namespaces, err := component.NamespacesFromEnv(s.app, s.env)
 	if err != nil {
 		return errors.Wrap(err, "find namespaces")
 	}
