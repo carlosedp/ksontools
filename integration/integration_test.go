@@ -23,7 +23,7 @@ var _ = Describe("Integration", func() {
 		var appDir string
 
 		BeforeEach(func() {
-			appDir = te.initApp()
+			appDir = te.initApp("")
 		})
 
 		AfterEach(func() {
@@ -32,14 +32,33 @@ var _ = Describe("Integration", func() {
 		})
 
 		Context("env", func() {
-			Context("targets", func() {
-				FIt("updates targets", func() {
-					co := te.runInApp(appDir, "env", "targets", "default", "--component", "/")
+			Context("describe", func() {
+				It("describes an environment", func() {
+					co := te.runInApp(appDir, "env", "describe", "default")
 					assertExitStatus(co, 0)
+					assertOutput("env_describe.txt", co.stdout)
 				})
-				FIt("removes previously set targets", func() {
-					co := te.runInApp(appDir, "env", "targets", "default")
+			})
+
+			Context("targets", func() {
+				It("updates targets", func() {
+					co := te.runInApp(appDir, "env", "describe", "default")
 					assertExitStatus(co, 0)
+					assertOutput("env_describe.txt", co.stdout)
+
+					co = te.runInApp(appDir, "env", "targets", "default", "--component", "/")
+					assertExitStatus(co, 0)
+
+					co = te.runInApp(appDir, "env", "describe", "default")
+					assertExitStatus(co, 0)
+					assertOutput("env_describe_with_target.txt", co.stdout)
+
+					co = te.runInApp(appDir, "env", "targets", "default")
+					assertExitStatus(co, 0)
+
+					co = te.runInApp(appDir, "env", "describe", "default")
+					assertExitStatus(co, 0)
+					assertOutput("env_describe.txt", co.stdout)
 				})
 			})
 		})

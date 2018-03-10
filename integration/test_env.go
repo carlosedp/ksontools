@@ -101,7 +101,11 @@ func (te *testEnv) compilePlugin() error {
 	return nil
 }
 
-func (te *testEnv) initApp() string {
+func (te *testEnv) initApp(server string) string {
+	if server == "" {
+		server = "http://example.com"
+	}
+
 	appID := randString(6)
 	appDir := filepath.Join(te.dir, appID)
 	options := []string{
@@ -109,6 +113,8 @@ func (te *testEnv) initApp() string {
 		appID,
 		"--dir",
 		appDir,
+		"--server",
+		server,
 	}
 	cmd := exec.Command("ks", options...)
 
