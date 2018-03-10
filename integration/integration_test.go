@@ -163,6 +163,22 @@ var _ = Describe("Integration", func() {
 		})
 
 		Context("ns", func() {
+			Context("create", func() {
+				It("creates a new namespace", func() {
+					co := te.runInApp(appDir, "ns", "create", "foo")
+					assertExitStatus(co, 0)
+
+					co = te.runInApp(appDir, "ns", "list")
+					assertExitStatus(co, 0)
+					assertOutput("ns_list_with_foo.txt", co.stdout)
+				})
+
+				It("errors when trying to create an existing namespace", func() {
+					co := te.runInApp(appDir, "ns", "create", "/")
+					assertExitStatus(co, 1)
+				})
+			})
+
 			Context("list", func() {
 				It("it lists namespaces", func() {
 					co := te.runInApp(appDir, "ns", "list")
