@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	vEnvTargetComponents = "env-target-components"
+	vEnvTargetNamespaces = "env-target-namespaces"
 )
 
 // envTargetsCmd represents the env targets command
@@ -23,7 +23,7 @@ var envTargetsCmd = &cobra.Command{
 
 		environment := args[0]
 
-		components := viper.GetStringSlice(vEnvTargetComponents)
+		components := viper.GetStringSlice(vEnvTargetNamespaces)
 		return action.EnvTargets(fs, environment, components)
 	},
 }
@@ -31,6 +31,6 @@ var envTargetsCmd = &cobra.Command{
 func init() {
 	envCmd.AddCommand(envTargetsCmd)
 
-	envTargetsCmd.Flags().StringSliceP(flagComponent, "c", nil, "Components to include")
-	viper.BindPFlag(vEnvTargetComponents, envTargetsCmd.Flags().Lookup(flagComponent))
+	envTargetsCmd.Flags().StringSlice(flagNamespace, nil, "Components to include")
+	viper.BindPFlag(vEnvTargetNamespaces, envTargetsCmd.Flags().Lookup(flagNamespace))
 }

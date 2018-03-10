@@ -46,7 +46,7 @@ var _ = Describe("Integration", func() {
 					assertExitStatus(co, 0)
 					assertOutput("env_describe.txt", co.stdout)
 
-					co = te.runInApp(appDir, "env", "targets", "default", "--component", "/")
+					co = te.runInApp(appDir, "env", "targets", "default", "--ns", "/")
 					assertExitStatus(co, 0)
 
 					co = te.runInApp(appDir, "env", "describe", "default")
@@ -60,6 +60,11 @@ var _ = Describe("Integration", func() {
 					assertExitStatus(co, 0)
 					assertOutput("env_describe.txt", co.stdout)
 				})
+			})
+
+			It("errors when adding an non-existent namespace as a target", func() {
+				co := te.runInApp(appDir, "env", "targets", "default", "--component", "missing")
+				assertExitStatus(co, 1)
 			})
 		})
 
