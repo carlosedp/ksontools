@@ -250,5 +250,17 @@ var _ = Describe("Integration", func() {
 			})
 
 		})
+
+		Context("show", func() {
+			It("shows an environment", func() {
+				dir := filepath.Join(dataPath, "rbac")
+				co := te.runInApp(appDir, "import", "-f", dir)
+				assertExitStatus(co, 0)
+
+				co = te.runInApp(appDir, "show", "default")
+				assertExitStatus(co, 0)
+				assertOutput("show.txt", co.stdout)
+			})
+		})
 	})
 })
