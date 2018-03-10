@@ -13,22 +13,31 @@ import (
 )
 
 // Import imports files or directories into ksonnet.
-type Import struct {
+func Import(fs afero.Fs, nsName, path string) error {
+	i, err := newImport(fs, nsName, path)
+	if err != nil {
+		return err
+	}
+
+	return i.Run()
+}
+
+type componentImport struct {
 	nsName string
 	path   string
 
 	*base
 }
 
-// NewImport creates an instance of Show. `nsName` is the name of the component and
+// newImport creates an instance of Show. `nsName` is the name of the component and
 // entity is the file or directory to import.
-func NewImport(fs afero.Fs, nsName, path string) (*Import, error) {
+func newImport(fs afero.Fs, nsName, path string) (*componentImport, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
 	}
 
-	i := &Import{
+	i := &componentImport{
 		nsName: nsName,
 		path:   path,
 		base:   b,
@@ -38,7 +47,7 @@ func NewImport(fs afero.Fs, nsName, path string) (*Import, error) {
 }
 
 // Run runs the import process.
-func (i *Import) Run() error {
+func (i *componentImport) Run() error {
 	pathFi, err := i.app.Fs().Stat(i.path)
 	if err != nil {
 		return err
@@ -68,7 +77,7 @@ func (i *Import) Run() error {
 	return nil
 }
 
-func (i *Import) importFile(fileName string) error {
+func (i *componentImport) importFile(fileName string) error {
 	var name bytes.Buffer
 	if i.nsName != "" {
 		name.WriteString(i.nsName + "/")

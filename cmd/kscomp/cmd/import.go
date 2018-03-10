@@ -17,10 +17,14 @@ package cmd
 import (
 	"github.com/bryanl/woowoo/action"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
+)
+
+const (
+	vImportFilename  = "import-filename"
+	vImportNamespace = "import-namespace"
 )
 
 // importCmd represents the import command
@@ -29,32 +33,22 @@ var importCmd = &cobra.Command{
 	Short: "Import manifest",
 	Long:  `Import manifest`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fileName := viper.GetString("f")
+		fileName := viper.GetString(vImportFilename)
 		if fileName == "" {
-			return errors.New("-f is required")
+			return errors.New("filename is required")
 		}
 
-		namespace := viper.GetString("ns")
+		namespace := viper.GetString(vImportNamespace)
 
-		importAction, err := action.NewImport(fs, namespace, fileName)
-		if err != nil {
-			return err
-		}
-
-		if err := importAction.Run(); err != nil {
-			logrus.Errorf("import failed: %+v", err)
-			return errors.Wrap(err, "unable to import file or directory")
-		}
-
-		return nil
+		return action.Import(fs, namespace, fileName)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(importCmd)
 
-	importCmd.Flags().StringP("f", "f", "", "Filename or directory for component to import")
-	viper.BindPFlag("f", importCmd.Flags().Lookup("f"))
-	importCmd.Flags().String("ns", "", "Component namespace")
-	viper.BindPFlag("ns", importCmd.Flags().Lookup("ns"))
+	importCmd.Flags().StringP(flagFilename, "f", "", "Filename or directory for component to import")
+	viper.BindPFlag(vImportFilename, importCmd.Flags().Lookup(flagFilename))
+	importCmd.Flags().String(flagNamespace, "", "Component namespace")
+	viper.BindPFlag(vImportNamespace, importCmd.Flags().Lookup(flagNamespace))
 }
