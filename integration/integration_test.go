@@ -40,6 +40,14 @@ var _ = Describe("Integration", func() {
 				})
 			})
 
+			Context("list", func() {
+				It("lists environments", func() {
+					co := te.runInApp(appDir, "env", "list")
+					assertExitStatus(co, 0)
+					assertOutput("env_list.txt", co.stdout)
+				})
+			})
+
 			Context("targets", func() {
 				It("updates targets", func() {
 					co := te.runInApp(appDir, "env", "describe", "default")
