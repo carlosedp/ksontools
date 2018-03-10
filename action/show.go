@@ -10,18 +10,28 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// Show shows an environment.
+func Show(fs afero.Fs, env string, opts ...ShowOpt) error {
+	s, err := newShow(fs, env, opts...)
+	if err != nil {
+		return err
+	}
+
+	return s.Run()
+}
+
 // ShowOpt is an option for configuring Show.
-type ShowOpt func(*Show)
+type ShowOpt func(*show)
 
 // ShowWithComponents selects the components to be show.
 func ShowWithComponents(names ...string) ShowOpt {
-	return func(show *Show) {
-		show.components = names
+	return func(s *show) {
+		s.components = names
 	}
 }
 
 // Show is a show Action
-type Show struct {
+type show struct {
 	env        string
 	components []string
 
@@ -29,26 +39,26 @@ type Show struct {
 }
 
 // NewShow creates an instance of Show.
-func NewShow(fs afero.Fs, env string, opts ...ShowOpt) (*Show, error) {
+func newShow(fs afero.Fs, env string, opts ...ShowOpt) (*show, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
 	}
 
-	show := &Show{
+	s := &show{
 		env:  env,
 		base: b,
 	}
 
 	for _, opt := range opts {
-		opt(show)
+		opt(s)
 	}
 
-	return show, nil
+	return s, nil
 }
 
 // Run runs the action.
-func (s *Show) Run() error {
+func (s *show) Run() error {
 	namespaces, err := component.NamespacesFromEnv(s.app, s.env)
 	if err != nil {
 		return errors.Wrap(err, "find namespaces")
@@ -81,7 +91,7 @@ func (s *Show) Run() error {
 	return nil
 }
 
-func (s *Show) isAvailable(name string) bool {
+func (s *show) isAvailable(name string) bool {
 	if len(s.components) == 0 {
 		return true
 	}

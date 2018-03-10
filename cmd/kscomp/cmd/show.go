@@ -20,34 +20,30 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	vShowEnv       = "show-env"
+	vShowComponent = "show-component"
+)
+
 // showCmd represents the show command
 var showCmd = &cobra.Command{
 	Use:   "show",
 	Short: "show a component",
 	Long:  `show a component`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		env := viper.GetString("env")
-		components := viper.GetStringSlice("component")
+		env := viper.GetString(vShowEnv)
+		components := viper.GetStringSlice(vShowComponent)
 
-		showAction, err := action.NewShow(fs, env, action.ShowWithComponents(components...))
-		if err != nil {
-			return err
-		}
-
-		if err := showAction.Run(); err != nil {
-			return err
-		}
-
-		return nil
+		return action.Show(fs, env, action.ShowWithComponents(components...))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(showCmd)
 
-	showCmd.Flags().String("env", "default", "Environment")
-	viper.BindPFlag("env", showCmd.Flags().Lookup("env"))
+	showCmd.Flags().String(flagEnv, "default", "Environment")
+	viper.BindPFlag(vShowEnv, showCmd.Flags().Lookup(flagEnv))
 
-	showCmd.Flags().StringSliceP("component", "c", nil, "Components to include")
-	viper.BindPFlag("component", showCmd.Flags().Lookup("component"))
+	showCmd.Flags().StringSliceP(flagComponent, "c", nil, "Components to include")
+	viper.BindPFlag(vShowComponent, showCmd.Flags().Lookup(flagComponent))
 }
