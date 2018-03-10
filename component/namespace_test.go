@@ -20,7 +20,8 @@ func TestNamespace_Components(t *testing.T) {
 		count  int
 	}{
 		{
-			name: "no components",
+			name:   "no components",
+			nsName: "/",
 		},
 		{
 			name:   "with components",

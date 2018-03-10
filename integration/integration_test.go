@@ -149,6 +149,15 @@ var _ = Describe("Integration", func() {
 			})
 		})
 
+		Context("ns", func() {
+			Context("list", func() {
+				It("it lists namespaces", func() {
+					co := te.runInApp(appDir, "ns", "list")
+					assertExitStatus(co, 0)
+					assertOutput("ns_list.txt", co.stdout)
+				})
+			})
+		})
 		Context("param", func() {
 			BeforeEach(func() {
 				createDefaultComponents(te, appDir)

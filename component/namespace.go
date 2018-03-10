@@ -38,6 +38,9 @@ func ExtractNamespacedComponent(app ksutil.SuperApp, path string) (Namespace, st
 
 // Name returns the namespace name.
 func (n *Namespace) Name() string {
+	if n.path == "" {
+		return "/"
+	}
 	return n.path
 }
 
