@@ -24,16 +24,8 @@ var paramSetGlobalCmd = &cobra.Command{
 			return errors.New("set-global [namespace] <param-key> <param-value>")
 		}
 
-		apsg, err := action.NewParamSetGlobal(fs, nsName, key, value)
-		if err != nil {
-			return errors.Wrap(err, "unable to initialize param set global action")
-		}
-
-		if err := apsg.Run(); err != nil {
-			return errors.Wrap(err, "set global param")
-		}
-
-		return nil
+		globalOpt := action.ParamSetGlobal(true)
+		return action.ParamSet(fs, nsName, key, value, globalOpt)
 	},
 }
 

@@ -22,6 +22,12 @@ func ParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSetOp
 // ParamSetOpt is an option for configuring ParamSet.
 type ParamSetOpt func(*paramSet)
 
+func ParamSetGlobal(isGlobal bool) ParamSetOpt {
+	return func(paramSet *paramSet) {
+		paramSet.global = isGlobal
+	}
+}
+
 // ParamSetWithIndex sets the index for the set option.
 func ParamSetWithIndex(index int) ParamSetOpt {
 	return func(paramSet *paramSet) {
@@ -31,26 +37,27 @@ func ParamSetWithIndex(index int) ParamSetOpt {
 
 // ParamSet sets a parameter for a component.
 type paramSet struct {
-	componentName string
-	rawPath       string
-	rawValue      string
-	index         int
+	name     string
+	rawPath  string
+	rawValue string
+	index    int
+	global   bool
 
 	*base
 }
 
 // NewParamSet creates an instance of ParamSet.
-func newParamSet(fs afero.Fs, componentName, path, value string, opts ...ParamSetOpt) (*paramSet, error) {
+func newParamSet(fs afero.Fs, name, path, value string, opts ...ParamSetOpt) (*paramSet, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
 	}
 
 	ps := &paramSet{
-		componentName: componentName,
-		rawPath:       path,
-		rawValue:      value,
-		base:          b,
+		name:     name,
+		rawPath:  path,
+		rawValue: value,
+		base:     b,
 	}
 
 	for _, opt := range opts {
@@ -69,7 +76,28 @@ func (ps *paramSet) Run() error {
 		return errors.Wrap(err, "value is invalid")
 	}
 
-	c, err := component.ExtractComponent(ps.app, ps.componentName)
+	if ps.global {
+		return ps.setGlobal(path, value)
+	}
+
+	return ps.setLocal(path, value)
+}
+
+func (ps *paramSet) setGlobal(path []string, value interface{}) error {
+	ns, err := component.GetNamespace(ps.app, ps.name)
+	if err != nil {
+		return errors.Wrap(err, "retrieve namespace")
+	}
+
+	if err := ns.SetParam(path, value); err != nil {
+		return errors.Wrap(err, "set global param")
+	}
+
+	return nil
+}
+
+func (ps *paramSet) setLocal(path []string, value interface{}) error {
+	c, err := component.ExtractComponent(ps.app, ps.name)
 	if err != nil {
 		return errors.Wrap(err, "could not find component")
 	}
@@ -82,5 +110,4 @@ func (ps *paramSet) Run() error {
 	}
 
 	return nil
-
 }
