@@ -31,6 +31,19 @@ var _ = Describe("Integration", func() {
 			Expect(err).To(Not(HaveOccurred()))
 		})
 
+		Context("env", func() {
+			Context("targets", func() {
+				FIt("updates targets", func() {
+					co := te.runInApp(appDir, "env", "targets", "default", "--component", "/")
+					assertExitStatus(co, 0)
+				})
+				FIt("removes previously set targets", func() {
+					co := te.runInApp(appDir, "env", "targets", "default")
+					assertExitStatus(co, 0)
+				})
+			})
+		})
+
 		Context("component", func() {
 			Context("list", func() {
 				Context("with a namespace which has components", func() {

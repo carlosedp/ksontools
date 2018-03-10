@@ -65,7 +65,8 @@
 
 [[constraint]]
   name = "github.com/ksonnet/ksonnet"
-  version = "0.9.0"
+  branch = "master"
+  # version = "0.9.0"
 
 [[constraint]]
   name = "github.com/PuerkitoBio/purell"

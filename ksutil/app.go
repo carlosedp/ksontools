@@ -2,6 +2,7 @@ package ksutil
 
 import (
 	"github.com/ksonnet/ksonnet/metadata/app"
+	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
@@ -12,6 +13,7 @@ type SuperApp interface {
 
 	Fs() afero.Fs
 	Root() string
+	UpdateTargets(envName string, targets []string) error
 }
 
 // LoadApp is a wrapper around app.
@@ -44,4 +46,17 @@ func (s *superApp) Fs() afero.Fs {
 
 func (s *superApp) Root() string {
 	return s.root
+}
+
+// TODO: when adding this to ksonnet, App001 should return an error as it can't
+// update targets
+func (s *superApp) UpdateTargets(envName string, targets []string) error {
+	spec, err := s.Environment(envName)
+	if err != nil {
+		return err
+	}
+
+	spec.Targets = targets
+
+	return errors.Wrap(s.AddEnvironment(envName, "", spec), "update targets")
 }

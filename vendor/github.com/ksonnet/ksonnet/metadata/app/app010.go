@@ -92,12 +92,32 @@ func (a *App010) AddEnvironment(name, k8sSpecFlag string, spec *EnvironmentSpec)
 
 	a.spec.Environments[name] = spec
 
-	ver, err := LibUpdater(a.fs, k8sSpecFlag, app010LibPath(a.root), true)
-	if err != nil {
+	if k8sSpecFlag != "" {
+		ver, err := LibUpdater(a.fs, k8sSpecFlag, app010LibPath(a.root), true)
+		if err != nil {
+			return err
+		}
+
+		a.spec.Environments[name].KubernetesVersion = ver
+	}
+
+	return a.save()
+}
+
+// RenameEnvironment renames environments.
+func (a *App010) RenameEnvironment(from, to string) error {
+	if err := moveEnvironment(a.fs, a.root, from, to); err != nil {
 		return err
 	}
 
-	a.spec.Environments[name].KubernetesVersion = ver
+	if err := a.load(); err != nil {
+		return err
+	}
+
+	a.spec.Environments[to] = a.spec.Environments[from]
+	delete(a.spec.Environments, from)
+
+	a.spec.Environments[to].Path = to
 
 	return a.save()
 }

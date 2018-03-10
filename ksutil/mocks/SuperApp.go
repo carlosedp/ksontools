@@ -182,6 +182,20 @@ func (_m *SuperApp) Root() string {
 	return r0
 }
 
+// UpdateTargets provides a mock function with given fields: envName, targets
+func (_m *SuperApp) UpdateTargets(envName string, targets []string) error {
+	ret := _m.Called(envName, targets)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, []string) error); ok {
+		r0 = rf(envName, targets)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Upgrade provides a mock function with given fields: dryRun
 func (_m *SuperApp) Upgrade(dryRun bool) error {
 	ret := _m.Called(dryRun)
