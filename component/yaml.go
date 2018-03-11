@@ -228,7 +228,6 @@ func (y *YAML) paramValues(componentName, index string, valueMap map[string]Valu
 				params = append(params, p)
 			}
 		}
-
 	}
 
 	return params, nil
@@ -352,35 +351,11 @@ func (y *YAML) applyParams(paramsStr string) ([]*unstructured.Unstructured, erro
 		paramsStr = string(b)
 	}
 
-	objects, err := y.raw()
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range objects {
-		globalMap, err := params.ToMap("", paramsStr, "global")
-		if err == nil {
-			err = mergeMaps(objects[i].Object, globalMap, nil)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		cn := fmt.Sprintf("%s-%d", y.componentName(), i)
-		componentMap, err := params.ToMap(cn, paramsStr, paramsComponentRoot)
-		if err == nil {
-			err = mergeMaps(objects[i].Object, componentMap, nil)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return objects, nil
+	return y.raw(paramsStr)
 }
 
-func (y *YAML) raw() ([]*unstructured.Unstructured, error) {
-	objects, err := y.readObject()
+func (y *YAML) raw(paramsStr string) ([]*unstructured.Unstructured, error) {
+	objects, err := y.readObject(paramsStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "read object")
 	}
@@ -424,15 +399,20 @@ func (y *YAML) componentName() string {
 	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
-func (y *YAML) readObject() ([]runtime.Object, error) {
+func (y *YAML) readObject(paramsStr string) ([]runtime.Object, error) {
 	f, err := y.app.Fs().Open(y.source)
 	if err != nil {
 		return nil, err
 	}
 
+	base := strings.TrimSuffix(filepath.Base(y.source), filepath.Ext(y.source))
+
 	decoder := amyaml.NewYAMLReader(bufio.NewReader(f))
 	ret := []runtime.Object{}
+	i := 0
 	for {
+		componentName := fmt.Sprintf("%s-%d", base, i)
+		i++
 		bytes, err := decoder.Read()
 		if err == io.EOF {
 			break
@@ -446,6 +426,14 @@ func (y *YAML) readObject() ([]runtime.Object, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		patched, err := patchJSON(string(jsondata), paramsStr, componentName)
+		if err != nil {
+			return nil, err
+		}
+
+		jsondata = []byte(patched)
+
 		obj, _, err := unstructured.UnstructuredJSONScheme.Decode(jsondata, nil, nil)
 		if err != nil {
 			return nil, err

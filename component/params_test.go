@@ -19,3 +19,19 @@ func Test_applyGlobals(t *testing.T) {
 
 	require.Equal(t, string(expected), got)
 }
+
+func Test_patchJSON(t *testing.T) {
+	jsonObject, err := ioutil.ReadFile("testdata/rbac-1.json")
+	require.NoError(t, err)
+
+	patch, err := ioutil.ReadFile("testdata/patch.json")
+	require.NoError(t, err)
+
+	got, err := patchJSON(string(jsonObject), string(patch), "rbac-1")
+	require.NoError(t, err)
+
+	expected, err := ioutil.ReadFile("testdata/rbac-1-patched.json")
+	require.NoError(t, err)
+
+	require.Equal(t, string(expected), got)
+}

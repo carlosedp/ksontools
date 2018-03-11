@@ -285,40 +285,6 @@ var _ = Describe("Integration", func() {
 					})
 				})
 			})
-
-			Context("set-global", func() {
-				Context("map", func() {
-					It("sets a map value", func() {
-						co := te.runInApp(appDir, "param", "set-global",
-							"metadata.labels", `{"session":"session-a"}`)
-						assertExitStatus(co, 0)
-
-						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
-						assertOutput("param_set_map.txt", co.stdout)
-					})
-				})
-				Context("array", func() {
-					It("sets an array value", func() {
-						co := te.runInApp(appDir, "param", "set-global",
-							"metadata.array", "[1,2,3,4]")
-						assertExitStatus(co, 0)
-
-						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
-						assertOutput("param_set_array.txt", co.stdout)
-					})
-				})
-				Context("literal", func() {
-					It("sets a literal value", func() {
-						co := te.runInApp(appDir, "param", "set-global",
-							"metadata.name", "cert-manager2")
-						assertExitStatus(co, 0)
-
-						co = te.runInApp(appDir, "show", "default", "-c", "deployment")
-						assertOutput("param_set_literal.txt", co.stdout)
-					})
-				})
-			})
-
 		})
 
 		Context("show", func() {
