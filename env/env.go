@@ -9,6 +9,7 @@ import (
 	"github.com/bryanl/woowoo/ksutil"
 	jsonnet "github.com/google/go-jsonnet"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -104,7 +105,7 @@ func buildEnvParam(ksApp ksutil.SuperApp, envName string, ns component.Namespace
 		return "", err
 	}
 
-	envParams := upgradeParams(string(b))
+	envParams := upgradeParams(envName, string(b))
 
 	vm := jsonnet.MakeVM()
 	vm.ExtCode("__ksonnet/params", paramsStr)
@@ -119,6 +120,7 @@ var (
 // multiple component namespaces.
 // NOTE: It warns when it makes a change. This serves as a temporary fix until
 // ksonnet generates the correct file.
-func upgradeParams(in string) string {
+func upgradeParams(envName, in string) string {
+	logrus.Warnf("rewriting %q environment params to not use relative paths", envName)
 	return reParamSwap.ReplaceAllLiteralString(in, `std.extVar("__ksonnet/params")`)
 }
