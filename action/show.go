@@ -2,9 +2,11 @@ package action
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/bryanl/woowoo/component"
 	"github.com/bryanl/woowoo/ksutil"
+	jsonnet "github.com/google/go-jsonnet"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -66,6 +68,11 @@ func (s *show) Run() error {
 
 	var objects []*unstructured.Unstructured
 	for _, ns := range namespaces {
+		paramsStr, err := s.buildEnvParam(ns)
+		if err != nil {
+			return err
+		}
+
 		members, err := ns.Components()
 		if err != nil {
 			return errors.Wrap(err, "find components")
@@ -76,7 +83,7 @@ func (s *show) Run() error {
 				continue
 			}
 
-			o, err := c.Objects()
+			o, err := c.Objects(paramsStr)
 			if err != nil {
 				return errors.Wrap(err, "get objects")
 			}
@@ -107,4 +114,21 @@ func stringInSlice(s string, sl []string) bool {
 	}
 
 	return false
+}
+
+func (s *show) buildEnvParam(ns component.Namespace) (string, error) {
+	paramsStr, err := ns.ResolvedParams()
+	if err != nil {
+		return "", err
+	}
+
+	envParamsPath := filepath.Join(s.app.Root(), "environments", s.env, "params.libsonnet")
+	envParams, err := afero.ReadFile(s.app.Fs(), envParamsPath)
+	if err != nil {
+		return "", err
+	}
+
+	vm := jsonnet.MakeVM()
+	vm.ExtCode("__ksonnet/params", paramsStr)
+	return vm.EvaluateSnippet("snippet", string(envParams))
 }

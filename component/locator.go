@@ -76,9 +76,10 @@ func (cpl *componentPathLocator) expandPath(root, target string) ([]string, erro
 	}
 
 	if fi.IsDir() {
-		rootPath := filepath.Join(root, componentsRoot, fi.Name())
+		// rootPath := filepath.Join(root, componentsRoot, fi.Name())
+		rootPath := filepath.Join(root, fi.Name())
 		if err := afero.Walk(cpl.app.Fs(), rootPath, walkFn); err != nil {
-			return nil, errors.Wrapf(err, "search for components in %s", fi.Name())
+			return nil, errors.Wrapf(err, "search for components in %s", path)
 		}
 	} else if isComponent(fi.Name()) {
 		paths = append(paths, path)

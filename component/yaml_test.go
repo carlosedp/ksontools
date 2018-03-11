@@ -64,7 +64,7 @@ func TestYAML_Objects_no_params(t *testing.T) {
 
 	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
-	list, err := y.Objects()
+	list, err := y.Objects("")
 	require.NoError(t, err)
 
 	expected := []*unstructured.Unstructured{
@@ -105,7 +105,7 @@ func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
 
 	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
-	list, err := y.Objects()
+	list, err := y.Objects("")
 	require.NoError(t, err)
 
 	expected := []*unstructured.Unstructured{
@@ -146,7 +146,7 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 
 	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
 
-	list, err := y.Objects()
+	list, err := y.Objects("")
 	require.NoError(t, err)
 
 	expected := []*unstructured.Unstructured{

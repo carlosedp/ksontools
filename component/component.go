@@ -39,7 +39,7 @@ func (s *Summary) typeSpec() (*TypeSpec, error) {
 // Component is a ksonnet Component interface.
 type Component interface {
 	Name() string
-	Objects() ([]*unstructured.Unstructured, error)
+	Objects(paramsStr string) ([]*unstructured.Unstructured, error)
 	SetParam(path []string, value interface{}, options ParamOptions) error
 	DeleteParam(path []string, options ParamOptions) error
 	Params() ([]NamespaceParameter, error)

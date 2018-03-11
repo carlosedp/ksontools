@@ -238,8 +238,8 @@ func (y *YAML) paramValues(componentName, index string, valueMap map[string]Valu
 // based component are keyed like, `name-id`, where `name` is the file name sans the extension,
 // and the id is the position within the file (starting at 0). Params are named this way
 // because a YAML file can contain more than one object.
-func (y *YAML) Objects() ([]*unstructured.Unstructured, error) {
-	return y.applyParams()
+func (y *YAML) Objects(paramsStr string) ([]*unstructured.Unstructured, error) {
+	return y.applyParams(paramsStr)
 }
 
 // SetParam set parameter for a component.
@@ -339,13 +339,17 @@ func (y *YAML) writeParams(src string) error {
 	return afero.WriteFile(y.app.Fs(), y.paramsPath, []byte(src), 0644)
 }
 
-func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
-	dir := filepath.Dir(y.source)
-	paramsFile := filepath.Join(dir, "params.libsonnet")
+func (y *YAML) applyParams(paramsStr string) ([]*unstructured.Unstructured, error) {
+	if paramsStr == "" {
+		dir := filepath.Dir(y.source)
+		paramsFile := filepath.Join(dir, "params.libsonnet")
 
-	b, err := afero.ReadFile(y.app.Fs(), paramsFile)
-	if err != nil {
-		return nil, err
+		b, err := afero.ReadFile(y.app.Fs(), paramsFile)
+		if err != nil {
+			return nil, err
+		}
+
+		paramsStr = string(b)
 	}
 
 	objects, err := y.raw()
@@ -354,7 +358,7 @@ func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 	}
 
 	for i := range objects {
-		globalMap, err := params.ToMap("", string(b), "global")
+		globalMap, err := params.ToMap("", paramsStr, "global")
 		if err == nil {
 			err = mergeMaps(objects[i].Object, globalMap, nil)
 			if err != nil {
@@ -363,7 +367,7 @@ func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 		}
 
 		cn := fmt.Sprintf("%s-%d", y.componentName(), i)
-		componentMap, err := params.ToMap(cn, string(b), paramsComponentRoot)
+		componentMap, err := params.ToMap(cn, paramsStr, paramsComponentRoot)
 		if err == nil {
 			err = mergeMaps(objects[i].Object, componentMap, nil)
 			if err != nil {
@@ -373,14 +377,6 @@ func (y *YAML) applyParams() ([]*unstructured.Unstructured, error) {
 	}
 
 	return objects, nil
-
-	// vmFactory := jsonnetutil.VMFactory{}
-	// vm, err := vmFactory.VM()
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "create jsonnet vm")
-	// }
-
-	// return nil, errors.New("not implemented")
 }
 
 func (y *YAML) raw() ([]*unstructured.Unstructured, error) {

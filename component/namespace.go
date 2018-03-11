@@ -133,6 +133,17 @@ type NamespaceParameter struct {
 	Value     string
 }
 
+// ResolvedParams resolves paramsters for a namespace. It returns a JSON encoded
+// string of component parameters.
+func (n *Namespace) ResolvedParams() (string, error) {
+	s, err := n.readParams()
+	if err != nil {
+		return "", err
+	}
+
+	return applyGlobals(s)
+}
+
 // Params returns the params for a namespace.
 func (n *Namespace) Params() ([]NamespaceParameter, error) {
 	components, err := n.Components()
