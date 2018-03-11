@@ -21,7 +21,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	err = te.compilePlugin()
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred(), "unable to compile plugin")
 })
 
 var _ = AfterSuite(func() {

@@ -120,9 +120,6 @@ func isComponentDir(fs afero.Fs, path string) (bool, error) {
 	return false, nil
 }
 
-// AppSpecer is implemented by any value that has a AppSpec method. The AppSpec method is
-// used to retrieve a ksonnet AppSpec.
-
 // MakePathsByNamespace creates a map of component paths categorized by namespace.
 func MakePathsByNamespace(app ksutil.SuperApp, env string) (map[Namespace][]string, error) {
 	paths, err := MakePaths(app, env)
@@ -156,5 +153,5 @@ func MakePaths(app ksutil.SuperApp, env string) ([]string, error) {
 		return nil, errors.Wrap(err, "create component path locator")
 	}
 
-	return cpl.Locate(app.Root())
+	return cpl.Locate()
 }

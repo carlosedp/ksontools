@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	// test helpers
 	. "github.com/onsi/gomega"
@@ -83,10 +82,10 @@ func (te *testEnv) compilePlugin() error {
 	}
 
 	cmd := exec.Command("go", options...)
-	if b, err := cmd.CombinedOutput(); err != nil {
-		logrus.Error(string(b))
-		return err
-	}
+
+	co, err := runWithOutput(cmd)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	assertExitStatus(co, 0)
 
 	data, err := buildPluginConfig(te)
 	if err != nil {

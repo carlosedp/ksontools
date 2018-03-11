@@ -182,21 +182,21 @@ func NamespacesFromEnv(app ksutil.SuperApp, env string) ([]Namespace, error) {
 		return nil, err
 	}
 
-	var namespaces []Namespace
-	seen := make(map[string]bool)
-	for i := range paths {
-		prefix := app.Root() + "/components/"
-		if strings.HasSuffix(app.Root(), "/") {
-			prefix = app.Root() + "components/"
-		}
+	prefix := app.Root() + "/components"
 
-		path := strings.TrimPrefix(paths[i], prefix)
-		ns, _ := ExtractNamespacedComponent(app, path)
-		if _, ok := seen[ns.Name()]; ok {
-			continue
+	seen := make(map[string]bool)
+	var namespaces []Namespace
+	for _, path := range paths {
+		nsName := strings.TrimPrefix(path, prefix)
+		if _, ok := seen[nsName]; !ok {
+			seen[nsName] = true
+			ns, err := GetNamespace(app, nsName)
+			if err != nil {
+				return nil, err
+			}
+
+			namespaces = append(namespaces, ns)
 		}
-		seen[ns.Name()] = true
-		namespaces = append(namespaces, ns)
 	}
 
 	return namespaces, nil

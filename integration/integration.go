@@ -27,6 +27,8 @@ type cmdOutput struct {
 	stdout   string
 	stderr   string
 	exitCode int
+	args     []string
+	cmdName  string
 }
 
 func runWithOutput(cmd *exec.Cmd) (*cmdOutput, error) {
@@ -58,6 +60,8 @@ func runWithOutput(cmd *exec.Cmd) (*cmdOutput, error) {
 		stdout:   stdout.String(),
 		stderr:   stderr.String(),
 		exitCode: exitCode,
+		args:     cmd.Args,
+		cmdName:  cmd.Path,
 	}
 
 	return co, nil

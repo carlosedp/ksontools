@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/gomega"
 )
@@ -30,6 +31,6 @@ func assertOutput(name, output string) {
 
 func assertExitStatus(co *cmdOutput, status int) {
 	ExpectWithOffset(1, co.exitCode).To(Equal(status),
-		"expected exit status to be %d but was %d\nstdout:\n%s\nstderr:\n%s\n",
-		status, co.exitCode, co.stdout, co.stderr)
+		"expected exit status to be %d but was %d\nstdout:\n%s\nstderr:\n%s\nargs:%s\npath:%s",
+		status, co.exitCode, co.stdout, co.stderr, strings.Join(co.args, " "), co.cmdName)
 }
