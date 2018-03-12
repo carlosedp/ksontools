@@ -19,6 +19,7 @@ package rest
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"sync"
 
 	"github.com/golang/glog"
@@ -63,6 +64,7 @@ func RegisterAuthProviderPlugin(name string, plugin Factory) error {
 }
 
 func GetAuthProvider(clusterAddress string, apc *clientcmdapi.AuthProviderConfig, persister AuthProviderConfigPersister) (AuthProvider, error) {
+	debug.PrintStack()
 	pluginsLock.Lock()
 	defer pluginsLock.Unlock()
 	p, ok := plugins[apc.Name]

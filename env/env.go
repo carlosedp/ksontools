@@ -8,24 +8,42 @@ import (
 	"github.com/bryanl/woowoo/component"
 	"github.com/bryanl/woowoo/ksutil"
 	jsonnet "github.com/google/go-jsonnet"
+	"github.com/ksonnet/ksonnet/client"
+	"github.com/ksonnet/ksonnet/pkg/kubecfg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// ApplyOptions are options for running apply.
+type ApplyOptions struct {
+	Create bool
+	SkipGc bool
+	GcTag  string
+	DryRun bool
+	Client *client.Config
+}
+
 // Apply applies components to a cluster.
-// func Apply(ksApp ksutil.SuperApp, envName string, components []string) error {
-// 	objects, err := buildObjects(ksApp, envName, components)
-// 	if err != nil {
-// 		return err
-// 	}
+func Apply(ksApp ksutil.SuperApp, envName string, components []string, options ApplyOptions) error {
+	objects, err := buildObjects(ksApp, envName, components)
+	if err != nil {
+		return err
+	}
 
-// 	// TODO: this is hackish. create better semantics around apply
-// 	c := kubecfg.ApplyCmd{}
+	// TODO: this is hackish. create better semantics around apply
+	c := kubecfg.ApplyCmd{
+		Env:          envName,
+		Create:       options.Create,
+		GcTag:        options.GcTag,
+		SkipGc:       options.SkipGc,
+		DryRun:       options.DryRun,
+		ClientConfig: options.Client,
+	}
 
-// 	return nil
-// }
+	return c.Run(objects, "")
+}
 
 // Show shows YAML rendered for an environment.
 func Show(ksApp ksutil.SuperApp, envName string, components []string) error {
