@@ -91,7 +91,6 @@ var _ = Describe("Integration", func() {
 					It("returns an empty list", func() {
 						co := te.runInApp(appDir, "component", "list")
 						assertExitStatus(co, 0)
-
 						assertOutput("component_list_empty.txt", co.stdout)
 					})
 				})
@@ -99,8 +98,6 @@ var _ = Describe("Integration", func() {
 					It("returns an empty list", func() {
 						co := te.runInApp(appDir, "component", "list", "--ns", "invalid")
 						assertExitStatus(co, 1)
-
-						assertOutput("component_list_invalid.txt", co.stderr)
 					})
 				})
 
@@ -126,8 +123,6 @@ var _ = Describe("Integration", func() {
 						It("returns an empty list", func() {
 							co := te.runInApp(appDir, "component", "list", "--ns", "invalid", "-o", "wide")
 							assertExitStatus(co, 1)
-
-							assertOutput("component_list_invalid.txt", co.stderr)
 						})
 					})
 				})
