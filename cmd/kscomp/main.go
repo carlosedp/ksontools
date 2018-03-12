@@ -16,12 +16,7 @@ package main
 
 import (
 	"github.com/bryanl/woowoo/cmd/kscomp/cmd"
-	"github.com/sirupsen/logrus"
 )
-
-func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-}
 
 func main() {
 	cmd.Execute()

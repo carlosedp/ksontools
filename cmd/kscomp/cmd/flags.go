@@ -7,6 +7,7 @@ var (
 	flagIndex     = "index"
 	flagNamespace = "ns"
 	flagOutput    = "output"
+	flagVerbose   = "verbose"
 
 	// these are on loan from the ksonnet app
 	flagCreate = "create"
