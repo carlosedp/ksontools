@@ -6,16 +6,8 @@ import (
 	"github.com/spf13/afero"
 )
 
-type ApplyOptions struct {
-	Create bool
-	SkipGc bool
-	GcTag  string
-	DryRun bool
-	Client *client.Config
-}
-
 // Apply applies an environment.
-func Apply(fs afero.Fs, env string, options ApplyOptions) error {
+func Apply(fs afero.Fs, env string, options client.ApplyOptions) error {
 	s, err := newApply(fs, env, options)
 	if err != nil {
 		return err
@@ -28,13 +20,13 @@ func Apply(fs afero.Fs, env string, options ApplyOptions) error {
 type apply struct {
 	env        string
 	components []string
-	options    ApplyOptions
+	options    client.ApplyOptions
 
 	*base
 }
 
 // NewApply creates an instance of Apply.
-func newApply(fs afero.Fs, env string, options ApplyOptions) (*apply, error) {
+func newApply(fs afero.Fs, env string, options client.ApplyOptions) (*apply, error) {
 	b, err := new(fs)
 	if err != nil {
 		return nil, err
@@ -51,13 +43,5 @@ func newApply(fs afero.Fs, env string, options ApplyOptions) (*apply, error) {
 
 // Run runs the action.
 func (s *apply) Run() error {
-	options := env.ApplyOptions{
-		Create: s.options.Create,
-		SkipGc: s.options.SkipGc,
-		GcTag:  s.options.GcTag,
-		DryRun: s.options.DryRun,
-		Client: s.options.Client,
-	}
-
-	return env.Apply(s.app, s.env, s.components, options)
+	return env.Apply(s.app, s.env, s.components, s.options)
 }

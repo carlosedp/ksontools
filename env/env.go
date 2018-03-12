@@ -16,23 +16,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// ApplyOptions are options for running apply.
-type ApplyOptions struct {
-	Create bool
-	SkipGc bool
-	GcTag  string
-	DryRun bool
-	Client *client.Config
-}
-
 // Apply applies components to a cluster.
-func Apply(ksApp ksutil.SuperApp, envName string, components []string, options ApplyOptions) error {
+func Apply(ksApp ksutil.SuperApp, envName string, components []string, options client.ApplyOptions) error {
 	objects, err := buildObjects(ksApp, envName, components)
 	if err != nil {
 		return err
 	}
 
-	// TODO: this is hackish. create better semantics around apply
+	// TODO: create better semantics around apply
 	c := k8sutil.ApplyCmd{
 		Env:          envName,
 		Create:       options.Create,
@@ -43,6 +34,23 @@ func Apply(ksApp ksutil.SuperApp, envName string, components []string, options A
 	}
 
 	return c.Run(objects, "")
+}
+
+// Delete deletes components from a cluster.
+func Delete(ksApp ksutil.SuperApp, envName string, components []string, options client.DeleteOptions) error {
+	objects, err := buildObjects(ksApp, envName, components)
+	if err != nil {
+		return err
+	}
+
+	// TODO: create better semantics around delete
+	c := k8sutil.DeleteCmd{
+		Env:          envName,
+		GracePeriod:  options.GracePeriod,
+		ClientConfig: options.Client,
+	}
+
+	return c.Run(objects)
 }
 
 // Show shows YAML rendered for an environment.

@@ -31,7 +31,7 @@ var applyCmd = &cobra.Command{
 
 		env := args[0]
 
-		options := action.ApplyOptions{
+		options := client.ApplyOptions{
 			Create: viper.GetBool(vApplyCreate),
 			SkipGc: viper.GetBool(vApplySkipGc),
 			GcTag:  viper.GetString(vApplyGcTag),

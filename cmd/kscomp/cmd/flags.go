@@ -10,8 +10,9 @@ var (
 	flagVerbose   = "verbose"
 
 	// these are on loan from the ksonnet app
-	flagCreate = "create"
-	flagSkipGc = "skip-gc"
-	flagGcTag  = "gc-tag"
-	flagDryRun = "dry-run"
+	flagGracePeriod = "grace-period"
+	flagCreate      = "create"
+	flagSkipGc      = "skip-gc"
+	flagGcTag       = "gc-tag"
+	flagDryRun      = "dry-run"
 )
