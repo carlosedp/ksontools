@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/bryanl/woowoo/action"
-	"github.com/ksonnet/ksonnet/client"
+	"github.com/bryanl/woowoo/pkg/client"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

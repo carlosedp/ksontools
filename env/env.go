@@ -6,10 +6,10 @@ import (
 	"regexp"
 
 	"github.com/bryanl/woowoo/component"
+	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/ksutil"
+	"github.com/bryanl/woowoo/pkg/client"
 	jsonnet "github.com/google/go-jsonnet"
-	"github.com/ksonnet/ksonnet/client"
-	"github.com/ksonnet/ksonnet/pkg/kubecfg"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/afero"
@@ -33,7 +33,7 @@ func Apply(ksApp ksutil.SuperApp, envName string, components []string, options A
 	}
 
 	// TODO: this is hackish. create better semantics around apply
-	c := kubecfg.ApplyCmd{
+	c := k8sutil.ApplyCmd{
 		Env:          envName,
 		Create:       options.Create,
 		GcTag:        options.GcTag,

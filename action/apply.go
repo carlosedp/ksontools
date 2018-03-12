@@ -2,7 +2,7 @@ package action
 
 import (
 	"github.com/bryanl/woowoo/env"
-	"github.com/ksonnet/ksonnet/client"
+	"github.com/bryanl/woowoo/pkg/client"
 	"github.com/spf13/afero"
 )
 

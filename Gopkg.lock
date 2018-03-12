@@ -2,10 +2,27 @@
 
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = ["compute/metadata"]
+  revision = "20d4028b8a750c2aca76bf9fefa8ed2d0109b573"
+  version = "v0.19.0"
+
+[[projects]]
   branch = "master"
   name = "dmitri.shuralyov.com/text/kebabcase"
   packages = ["."]
   revision = "40e40b42552a9cb37d6e98f4ad31f63ae53ea43a"
+
+[[projects]]
+  name = "github.com/Azure/go-autorest"
+  packages = [
+    "autorest",
+    "autorest/adal",
+    "autorest/azure",
+    "autorest/date"
+  ]
+  revision = "fc3b03a2d2d1f43fad3007038bd16f044f870722"
+  version = "v9.10.0"
 
 [[projects]]
   branch = "master"
@@ -50,6 +67,12 @@
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   name = "github.com/emicklei/go-restful"
@@ -215,6 +238,20 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gophercloud/gophercloud"
+  packages = [
+    ".",
+    "openstack",
+    "openstack/identity/v2/tenants",
+    "openstack/identity/v2/tokens",
+    "openstack/identity/v3/tokens",
+    "openstack/utils",
+    "pagination"
+  ]
+  revision = "d2fe5bf4e65410df3bcca179f80aa84a3fc7fb98"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gregjones/httpcache"
   packages = [
     ".",
@@ -290,7 +327,6 @@
   branch = "master"
   name = "github.com/ksonnet/ksonnet"
   packages = [
-    "client",
     "component",
     "env",
     "generator",
@@ -300,7 +336,6 @@
     "metadata/params",
     "metadata/parts",
     "metadata/registry",
-    "pkg/kubecfg",
     "prototype",
     "strings",
     "utils"
@@ -621,20 +656,6 @@
   version = "0.9.1"
 
 [[projects]]
-  name = "github.com/yudai/gojsondiff"
-  packages = [
-    ".",
-    "formatter"
-  ]
-  revision = "9209d1532c51cabe0439993586a71c207b09a0ac"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/yudai/golcs"
-  packages = ["."]
-  revision = "ecda9a501e8220fae3b4b600c3db4b0ba22cfc68"
-
-[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
@@ -660,7 +681,10 @@
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "internal"
+    "google",
+    "internal",
+    "jws",
+    "jwt"
   ]
   revision = "cce311a261e6fcf29de72ca96827bdb0b7d9c9e6"
 
@@ -710,10 +734,13 @@
 [[projects]]
   name = "google.golang.org/appengine"
   packages = [
+    ".",
     "internal",
+    "internal/app_identity",
     "internal/base",
     "internal/datastore",
     "internal/log",
+    "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
     "urlfetch"
@@ -815,8 +842,13 @@
     "dynamic",
     "kubernetes/scheme",
     "pkg/version",
+    "plugin/pkg/client/auth/azure",
+    "plugin/pkg/client/auth/gcp",
+    "plugin/pkg/client/auth/oidc",
+    "plugin/pkg/client/auth/openstack",
     "rest",
     "rest/watch",
+    "third_party/forked/golang/template",
     "tools/auth",
     "tools/clientcmd",
     "tools/clientcmd/api",
@@ -827,7 +859,8 @@
     "util/cert",
     "util/flowcontrol",
     "util/homedir",
-    "util/integer"
+    "util/integer",
+    "util/jsonpath"
   ]
   revision = "2ae454230481a7cb5544325e12ad7658ecccd19b"
   version = "v5.0.1"
@@ -841,6 +874,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8c331cd163f023c9e57ac8562f16b703db36574ffb267850b95bcd4c9930ba1e"
+  inputs-digest = "3e2c3fe5c96e0c6b7a5be04a186c03fc50a67da3594c8a91a0730c1474eaf761"
   solver-name = "gps-cdcl"
   solver-version = 1
