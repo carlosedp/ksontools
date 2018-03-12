@@ -96,6 +96,46 @@ func TestYAML_Objects_no_params(t *testing.T) {
 
 	require.Equal(t, expected, list)
 }
+func TestYAML_Objects_no_params_with_json(t *testing.T) {
+	app, fs := appMock("/")
+
+	stageFile(t, fs, "certificate-crd.json", "/certificate-crd.json")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
+
+	y := NewYAML(app, "/certificate-crd.json", "/params.libsonnet")
+
+	list, err := y.Objects("")
+	require.NoError(t, err)
+
+	expected := []*unstructured.Unstructured{
+		{
+			Object: map[string]interface{}{
+				"apiVersion": "apiextensions.k8s.io/v1beta1",
+				"kind":       "CustomResourceDefinition",
+				"metadata": map[string]interface{}{
+					"labels": map[string]interface{}{
+						"app":      "cert-manager",
+						"chart":    "cert-manager-0.2.2",
+						"heritage": "Tiller",
+						"release":  "cert-manager",
+					},
+					"name": "certificates.certmanager.k8s.io",
+				},
+				"spec": map[string]interface{}{
+					"version": "v1alpha1",
+					"group":   "certmanager.k8s.io",
+					"names": map[string]interface{}{
+						"kind":   "Certificate",
+						"plural": "certificates",
+					},
+					"scope": "Namespaced",
+				},
+			},
+		},
+	}
+
+	require.Equal(t, expected, list)
+}
 
 func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
 	app, fs := appMock("/")
@@ -244,6 +284,31 @@ func TestYAML_Summarize(t *testing.T) {
 			APIVersion:    "rbac.authorization.k8s.io/v1beta1",
 			Kind:          "ClusterRoleBinding",
 			Name:          "cert-manager",
+		},
+	}
+
+	require.Equal(t, expected, list)
+}
+
+func TestYAML_Summarize_json(t *testing.T) {
+	app, fs := appMock("/")
+
+	stageFile(t, fs, "certificate-crd.json", "/components/certificate-crd.json")
+	stageFile(t, fs, "params-no-entry.libsonnet", "/components/params.libsonnet")
+
+	y := NewYAML(app, "/components/certificate-crd.json", "/components/params.libsonnet")
+
+	list, err := y.Summarize()
+	require.NoError(t, err)
+
+	expected := []Summary{
+		{
+			ComponentName: "certificate-crd",
+			IndexStr:      "0",
+			Type:          "json",
+			APIVersion:    "apiextensions.k8s.io/v1beta1",
+			Kind:          "CustomResourceDefinition",
+			Name:          "certificates_certmanager_k8s_io",
 		},
 	}
 

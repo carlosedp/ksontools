@@ -62,7 +62,7 @@ func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 	return ts, props, nil
 }
 
-// YAML represents a YAML component.
+// YAML represents a YAML component. Since JSON is a subset of YAML, it can handle JSON as well.
 type YAML struct {
 	app        ksutil.SuperApp
 	source     string
@@ -467,7 +467,7 @@ func (y *YAML) Summarize() ([]Summary, error) {
 		summary := Summary{
 			ComponentName: y.Name(),
 			IndexStr:      strconv.Itoa(i),
-			Type:          "yaml",
+			Type:          y.ext(),
 			APIVersion:    ts.apiVersion,
 			Kind:          ts.kind,
 			Name:          name,
@@ -476,6 +476,11 @@ func (y *YAML) Summarize() ([]Summary, error) {
 	}
 
 	return summaries, nil
+}
+
+func (y *YAML) ext() string {
+	return strings.TrimPrefix(filepath.Ext(y.source), ".")
+
 }
 
 type paramPath struct {

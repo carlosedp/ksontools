@@ -259,7 +259,7 @@ func (n *Namespace) Components() ([]Component, error) {
 
 		switch ext {
 		// TODO: these should be constants
-		case ".yaml":
+		case ".yaml", ".json":
 			component := NewYAML(n.app, path, n.ParamsPath())
 			components = append(components, component)
 		}
