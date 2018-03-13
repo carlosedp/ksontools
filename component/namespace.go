@@ -73,32 +73,7 @@ func (n *Namespace) SetParam(path []string, value interface{}) error {
 		return err
 	}
 
-	props, err := params.ToMap("", paramsData, "global")
-	if err != nil {
-		return err
-	}
-
-	// TODO: this is duplicated in YAML.SetParam
-	changes := make(map[string]interface{})
-	cur := changes
-
-	for i, k := range path {
-		if i == len(path)-1 {
-			cur[k] = value
-		} else {
-			if _, ok := cur[k]; !ok {
-				m := make(map[string]interface{})
-				cur[k] = m
-				cur = m
-			}
-		}
-	}
-
-	if err = mergeMaps(props, changes, nil); err != nil {
-		return err
-	}
-
-	updatedParams, err := params.Update([]string{"global"}, paramsData, changes)
+	updatedParams, err := params.Set(path, paramsData, "", value, "global")
 	if err != nil {
 		return err
 	}

@@ -148,3 +148,82 @@ func TestDecodeValue(t *testing.T) {
 		})
 	}
 }
+
+func Test_mergeMaps(t *testing.T) {
+	m1 := map[string]interface{}{
+		"apiVersion": "apiextensions.k8s.io/v1beta1",
+		"kind":       "CustomResourceDefinition",
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"app":      "cert-manager",
+				"chart":    "cert-manager-0.2.2",
+				"heritage": "Tiller",
+				"release":  "cert-manager",
+			},
+			"name": "certificates.certmanager.k8s.io",
+		},
+		"spec": map[string]interface{}{
+			"version": "v1",
+			"group":   "certmanager.k8s.io",
+			"names": map[string]interface{}{
+				"kind":   "Certificate",
+				"plural": "certificates",
+			},
+			"scope": "Namespaced",
+		},
+	}
+
+	m2 := map[string]interface{}{
+		"spec": map[string]interface{}{
+			"version": "v2",
+		},
+	}
+
+	expected := map[string]interface{}{
+		"apiVersion": "apiextensions.k8s.io/v1beta1",
+		"kind":       "CustomResourceDefinition",
+		"metadata": map[string]interface{}{
+			"labels": map[string]interface{}{
+				"app":      "cert-manager",
+				"chart":    "cert-manager-0.2.2",
+				"heritage": "Tiller",
+				"release":  "cert-manager",
+			},
+			"name": "certificates.certmanager.k8s.io",
+		},
+		"spec": map[string]interface{}{
+			"version": "v2",
+			"group":   "certmanager.k8s.io",
+			"names": map[string]interface{}{
+				"kind":   "Certificate",
+				"plural": "certificates",
+			},
+			"scope": "Namespaced",
+		},
+	}
+
+	err := mergeMaps(m1, m2, nil)
+	require.NoError(t, err)
+	require.Equal(t, expected, m1)
+}
+
+func Test_mergeMaps_simple(t *testing.T) {
+	m1 := map[string]interface{}{
+		"a": 1,
+		"b": 2,
+	}
+
+	m2 := map[string]interface{}{
+		"b": 4,
+	}
+
+	expected := map[string]interface{}{
+		"a": 1,
+		"b": 4,
+	}
+
+	err := mergeMaps(m1, m2, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, expected, m1)
+}

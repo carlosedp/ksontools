@@ -3,6 +3,8 @@ package params
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,59 @@ import (
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
 	"github.com/pkg/errors"
 )
+
+// Set sets a param value.
+func Set(path []string, paramsData, key string, value interface{}, root string) (string, error) {
+	props, err := ToMap(key, paramsData, root)
+	if err != nil {
+		props = make(map[string]interface{})
+	}
+
+	changes := make(map[string]interface{})
+	cur := changes
+
+	for i, k := range path {
+		if i == len(path)-1 {
+			cur[k] = value
+		} else {
+			if _, ok := cur[k]; !ok {
+				m := make(map[string]interface{})
+				cur[k] = m
+				cur = m
+			}
+		}
+	}
+
+	if err = mergeMaps(props, changes, nil); err != nil {
+		return "", err
+	}
+
+	return Update([]string{root, key}, paramsData, props)
+}
+
+// Delete deletes a param value.
+func Delete(path []string, paramsData, key, root string) (string, error) {
+	props, err := ToMap(key, paramsData, root)
+	if err != nil {
+		return "", err
+	}
+	cur := props
+
+	for i, k := range path {
+		if i == len(path)-1 {
+			delete(cur, k)
+		} else {
+			m, ok := cur[k].(map[string]interface{})
+			if !ok {
+				return "", errors.New("path not found")
+			}
+
+			cur = m
+		}
+	}
+
+	return Update([]string{root, key}, paramsData, props)
+}
 
 // Update updates a params file with the params for a component.
 func Update(path []string, src string, params map[string]interface{}) (string, error) {
@@ -177,4 +232,29 @@ func arrayValues(array *ast.Array) ([]interface{}, error) {
 	}
 
 	return out, nil
+}
+
+func mergeMaps(m1 map[string]interface{}, m2 map[string]interface{}, path []string) error {
+	for k := range m2 {
+		_, ok := m1[k]
+		if ok {
+			v1, isMap1 := m1[k].(map[string]interface{})
+			v2, isMap2 := m2[k].(map[string]interface{})
+			if isMap1 && isMap2 {
+				err := mergeMaps(v1, v2, append(path, k))
+				if err != nil {
+					return err
+				}
+			} else if reflect.TypeOf(v1) == reflect.TypeOf(v2) {
+				m1[k] = m2[k]
+			} else {
+				errorPath := append(path, k)
+				return fmt.Errorf("not same types at %s", strings.Join(errorPath, "."))
+			}
+		} else {
+			m1[k] = m2[k]
+		}
+	}
+
+	return nil
 }

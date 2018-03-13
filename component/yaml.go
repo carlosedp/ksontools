@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -67,7 +66,6 @@ type YAML struct {
 	app        ksutil.SuperApp
 	source     string
 	paramsPath string
-	libPather  libPather
 }
 
 var _ Component = (*YAML)(nil)
@@ -249,31 +247,7 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 		return err
 	}
 
-	props, err := params.ToMap(entry, paramsData, paramsComponentRoot)
-	if err != nil {
-		props = make(map[string]interface{})
-	}
-
-	changes := make(map[string]interface{})
-	cur := changes
-
-	for i, k := range path {
-		if i == len(path)-1 {
-			cur[k] = value
-		} else {
-			if _, ok := cur[k]; !ok {
-				m := make(map[string]interface{})
-				cur[k] = m
-				cur = m
-			}
-		}
-	}
-
-	if err = mergeMaps(props, changes, nil); err != nil {
-		return err
-	}
-
-	updatedParams, err := params.Update([]string{paramsComponentRoot, entry}, paramsData, changes)
+	updatedParams, err := params.Set(path, paramsData, entry, value, paramsComponentRoot)
 	if err != nil {
 		return err
 	}
@@ -287,33 +261,13 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 
 // DeleteParam deletes a param.
 func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
-	// TODO: consolidate this with SetParams
 	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {
 		return err
 	}
 
-	props, err := params.ToMap(entry, paramsData, paramsComponentRoot)
-	if err != nil {
-		return errors.Errorf("invalid path %q in %s", strings.Join(path, "."), y.Name())
-	}
-	cur := props
-
-	for i, k := range path {
-		if i == len(path)-1 {
-			delete(cur, k)
-		} else {
-			m, ok := cur[k].(map[string]interface{})
-			if !ok {
-				return errors.New("path not found")
-			}
-
-			cur = m
-		}
-	}
-
-	updatedParams, err := params.Update([]string{paramsComponentRoot, entry}, paramsData, props)
+	updatedParams, err := params.Delete(path, paramsData, entry, paramsComponentRoot)
 	if err != nil {
 		return err
 	}
@@ -521,29 +475,4 @@ func mapToPaths(m map[string]interface{}, lookup map[string]bool, parent []strin
 	})
 
 	return paths
-}
-
-func mergeMaps(m1 map[string]interface{}, m2 map[string]interface{}, path []string) error {
-	for k := range m2 {
-		_, ok := m1[k]
-		if ok {
-			v1, isMap1 := m1[k].(map[string]interface{})
-			v2, isMap2 := m2[k].(map[string]interface{})
-			if isMap1 && isMap2 {
-				err := mergeMaps(v1, v2, append(path, k))
-				if err != nil {
-					return err
-				}
-			} else if reflect.TypeOf(v1) == reflect.TypeOf(v2) {
-				m1[k] = m2[k]
-			} else {
-				errorPath := append(path, k)
-				return fmt.Errorf("not same types at %s", strings.Join(errorPath, "."))
-			}
-		} else {
-			m1[k] = m2[k]
-		}
-	}
-
-	return nil
 }
