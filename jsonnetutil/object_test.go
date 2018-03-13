@@ -2,7 +2,6 @@ package jsonnetutil
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -82,7 +81,6 @@ func TestSet(t *testing.T) {
 				err = printer.Fprint(&got, astObject)
 				require.NoError(t, err)
 
-				fmt.Println(got.String())
 				require.Equal(t, tc.expected, got.String())
 			}
 		})
@@ -116,7 +114,7 @@ func TestFindObject(t *testing.T) {
 		{
 			name:     "find string id object",
 			path:     []string{"a", "d-1"},
-			expected: nm.NewStringDouble("string").Node(),
+			expected: a.Node(),
 		},
 		{
 			name:  "invalid path",
