@@ -81,7 +81,8 @@ func NewYAML(app ksutil.SuperApp, source, paramsPath string) *YAML {
 
 // Name is the component name.
 func (y *YAML) Name() string {
-	return y.componentName()
+	base := filepath.Base(y.source)
+	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
 // Params returns params for a component.
@@ -111,7 +112,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 		return nil, errors.Wrap(err, "could not find components")
 	}
 
-	re, err := regexp.Compile(fmt.Sprintf(`^%s-(\d+)$`, y.componentName()))
+	re, err := regexp.Compile(fmt.Sprintf(`^%s-(\d+)$`, y.Name()))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 				return nil, errors.Errorf("component value for %q was not a map", componentName)
 			}
 
-			childParams, err := y.paramValues(y.componentName(), index, valueMap, m, nil)
+			childParams, err := y.paramValues(y.Name(), index, valueMap, m, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -235,13 +236,25 @@ func (y *YAML) paramValues(componentName, index string, valueMap map[string]Valu
 // based component are keyed like, `name-id`, where `name` is the file name sans the extension,
 // and the id is the position within the file (starting at 0). Params are named this way
 // because a YAML file can contain more than one object.
-func (y *YAML) Objects(paramsStr string) ([]*unstructured.Unstructured, error) {
-	return y.applyParams(paramsStr)
+func (y *YAML) Objects(paramsStr, envName string) ([]*unstructured.Unstructured, error) {
+	if paramsStr == "" {
+		dir := filepath.Dir(y.source)
+		paramsFile := filepath.Join(dir, "params.libsonnet")
+
+		b, err := afero.ReadFile(y.app.Fs(), paramsFile)
+		if err != nil {
+			return nil, err
+		}
+
+		paramsStr = string(b)
+	}
+
+	return y.raw(paramsStr)
 }
 
 // SetParam set parameter for a component.
 func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) error {
-	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
+	entry := fmt.Sprintf("%s-%d", y.Name(), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {
 		return err
@@ -261,7 +274,7 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 
 // DeleteParam deletes a param.
 func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
-	entry := fmt.Sprintf("%s-%d", y.componentName(), options.Index)
+	entry := fmt.Sprintf("%s-%d", y.Name(), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {
 		return err
@@ -290,22 +303,6 @@ func (y *YAML) readParams() (string, error) {
 
 func (y *YAML) writeParams(src string) error {
 	return afero.WriteFile(y.app.Fs(), y.paramsPath, []byte(src), 0644)
-}
-
-func (y *YAML) applyParams(paramsStr string) ([]*unstructured.Unstructured, error) {
-	if paramsStr == "" {
-		dir := filepath.Dir(y.source)
-		paramsFile := filepath.Join(dir, "params.libsonnet")
-
-		b, err := afero.ReadFile(y.app.Fs(), paramsFile)
-		if err != nil {
-			return nil, err
-		}
-
-		paramsStr = string(b)
-	}
-
-	return y.raw(paramsStr)
 }
 
 func (y *YAML) raw(paramsStr string) ([]*unstructured.Unstructured, error) {
@@ -338,7 +335,7 @@ func (y *YAML) hasParams() (bool, error) {
 
 	componentPath := []string{
 		paramsComponentRoot,
-		fmt.Sprintf("%s-0", y.componentName()),
+		fmt.Sprintf("%s-0", y.Name()),
 	}
 	_, err = jsonnetutil.FindObject(paramsObj, componentPath)
 	if err != nil {
@@ -346,11 +343,6 @@ func (y *YAML) hasParams() (bool, error) {
 	}
 
 	return true, nil
-}
-
-func (y *YAML) componentName() string {
-	base := filepath.Base(y.source)
-	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
 func (y *YAML) readObject(paramsStr string) ([]runtime.Object, error) {

@@ -237,6 +237,9 @@ func (n *Namespace) Components() ([]Component, error) {
 		case ".yaml", ".json":
 			component := NewYAML(n.app, path, n.ParamsPath())
 			components = append(components, component)
+		case ".jsonnet":
+			component := NewJsonnet(n.app, path, n.ParamsPath())
+			components = append(components, component)
 		}
 	}
 

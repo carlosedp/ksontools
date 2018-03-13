@@ -8,11 +8,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bryanl/woowoo/k8sutil"
+
 	"github.com/bryanl/woowoo/ksutil"
 	"github.com/bryanl/woowoo/params"
+	jsonnet "github.com/google/go-jsonnet"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Jsonnet is a component base on jsonnet.
@@ -39,8 +43,118 @@ func (j *Jsonnet) Name() string {
 	return strings.TrimSuffix(base, filepath.Ext(base))
 }
 
-func (j *Jsonnet) Objects(paramsStr string) ([]*unstructured.Unstructured, error) {
-	return nil, errors.Errorf("not here yet")
+func (j *Jsonnet) vmImporter(envName string) (*jsonnet.MemoryImporter, error) {
+	libPath, err := j.app.LibPath(envName)
+	if err != nil {
+		return nil, err
+	}
+
+	readString := func(path string) (string, error) {
+		filename := filepath.Join(libPath, path)
+		var b []byte
+
+		b, err = afero.ReadFile(j.app.Fs(), filename)
+		if err != nil {
+			return "", err
+		}
+
+		return string(b), nil
+	}
+
+	dataK, err := readString("k.libsonnet")
+	if err != nil {
+		return nil, err
+	}
+	dataK8s, err := readString("k8s.libsonnet")
+	if err != nil {
+		return nil, err
+	}
+
+	importer := &jsonnet.MemoryImporter{
+		Data: map[string]string{
+			"k.libsonnet":   dataK,
+			"k8s.libsonnet": dataK8s,
+		},
+	}
+
+	return importer, nil
+}
+
+func jsonWalk(obj interface{}) ([]interface{}, error) {
+	switch o := obj.(type) {
+	case map[string]interface{}:
+		if o["kind"] != nil && o["apiVersion"] != nil {
+			return []interface{}{o}, nil
+		}
+		ret := []interface{}{}
+		for _, v := range o {
+			children, err := jsonWalk(v)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, children...)
+		}
+		return ret, nil
+	case []interface{}:
+		ret := make([]interface{}, 0, len(o))
+		for _, v := range o {
+			children, err := jsonWalk(v)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, children...)
+		}
+		return ret, nil
+	default:
+		return nil, fmt.Errorf("Unexpected object structure: %T", o)
+	}
+}
+
+// Objects converts jsonnet to a slice of apimachinery unstructured objects.
+func (j *Jsonnet) Objects(paramsStr, envName string) ([]*unstructured.Unstructured, error) {
+	importer, err := j.vmImporter(envName)
+	if err != nil {
+		return nil, err
+	}
+
+	vm := jsonnet.MakeVM()
+	vm.Importer(importer)
+	vm.ExtCode("__ksonnet/params", paramsStr)
+
+	snippet, err := afero.ReadFile(j.app.Fs(), j.source)
+	if err != nil {
+		return nil, err
+	}
+
+	evaluated, err := vm.EvaluateSnippet(j.source, string(snippet))
+	if err != nil {
+		return nil, err
+	}
+
+	var top interface{}
+	if err = json.Unmarshal([]byte(evaluated), &top); err != nil {
+		return nil, err
+	}
+
+	objects, err := jsonWalk(top)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]runtime.Object, 0, len(objects))
+	for _, object := range objects {
+		data, err := json.Marshal(object)
+		if err != nil {
+			return nil, err
+		}
+		uns, _, err := unstructured.UnstructuredJSONScheme.Decode(data, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, uns)
+	}
+
+	return k8sutil.FlattenToV1(ret)
 }
 
 // SetParam set parameter for a component.

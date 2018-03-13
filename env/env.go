@@ -90,7 +90,7 @@ func buildObjects(ksApp ksutil.SuperApp, envName string, components []string) ([
 				continue
 			}
 
-			o, err := c.Objects(paramsStr)
+			o, err := c.Objects(paramsStr, envName)
 			if err != nil {
 				return nil, errors.Wrap(err, "get objects")
 			}
