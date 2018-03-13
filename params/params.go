@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/pkg/errors"
 )
 

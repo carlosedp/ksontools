@@ -9,9 +9,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/pkg/errors"

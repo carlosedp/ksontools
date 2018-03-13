@@ -336,11 +336,13 @@
     "metadata/params",
     "metadata/parts",
     "metadata/registry",
+    "pkg/docparser",
+    "pkg/util/jsonnet",
     "prototype",
     "strings",
     "utils"
   ]
-  revision = "3524328e2276f80085d00132fd4d02381dcb190f"
+  revision = "fbb39605eab915f653808605ee45d075dd457f8a"
 
 [[projects]]
   branch = "master"
@@ -354,7 +356,7 @@
     "ksonnet-gen/nodemaker",
     "ksonnet-gen/printer"
   ]
-  revision = "5f18b78811847eb7f581deb4ad3d3cf0abdbe00d"
+  revision = "152e1979764f713239ca25bcb0f3315e69215119"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -874,6 +876,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3e2c3fe5c96e0c6b7a5be04a186c03fc50a67da3594c8a91a0730c1474eaf761"
+  inputs-digest = "bdb29ce3a7fc5617939afcc3e8cef808187e9087741fe0c793048bc3d292e46b"
   solver-name = "gps-cdcl"
   solver-version = 1

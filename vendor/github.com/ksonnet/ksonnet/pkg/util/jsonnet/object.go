@@ -1,12 +1,10 @@
-package jsonnetutil
+package jsonnet
 
 import (
 	"fmt"
-	"regexp"
 
 	"github.com/google/go-jsonnet/ast"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
-	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
 	"github.com/pkg/errors"
 )
 
@@ -25,10 +23,11 @@ func Set(object *astext.Object, path []string, value ast.Node) error {
 			default:
 				return err
 			case *unknownField:
-				field, err = createFieldWithName(k)
+				field, err = astext.CreateField(k)
 				if err != nil {
 					return err
 				}
+				field.Hide = ast.ObjectFieldInherit
 				curObj.Fields = append(curObj.Fields, *field)
 			}
 		}
@@ -55,12 +54,6 @@ func Set(object *astext.Object, path []string, value ast.Node) error {
 	return nil
 }
 
-var (
-	// TODO: move this to nodemaker after 0.9 release
-	reFieldStr = regexp.MustCompile(`^[A-Za-z]+[A-Za-z0-9\-]*$`)
-	reField    = regexp.MustCompile(`^[A-Za-z]+[A-Za-z0-9]*$`)
-)
-
 func canUpdateObject(node1, node2 ast.Node) bool {
 	return isNodeObject(node1) && !isNodeObject(node2)
 }
@@ -68,22 +61,6 @@ func canUpdateObject(node1, node2 ast.Node) bool {
 func isNodeObject(node ast.Node) bool {
 	_, ok := node.(*astext.Object)
 	return ok
-}
-
-func createFieldWithName(name string) (*astext.ObjectField, error) {
-	of := astext.ObjectField{ObjectField: ast.ObjectField{Hide: ast.ObjectFieldInherit}}
-	if reField.MatchString(name) {
-		id := ast.Identifier(name)
-		of.Kind = ast.ObjectFieldID
-		of.Id = &id
-	} else if reFieldStr.MatchString(name) {
-		of.Expr1 = nm.NewStringDouble(name).Node()
-		of.Kind = ast.ObjectFieldStr
-	} else {
-		return nil, errors.Errorf("invalid field name %q", name)
-	}
-
-	return &of, nil
 }
 
 type unknownField struct {

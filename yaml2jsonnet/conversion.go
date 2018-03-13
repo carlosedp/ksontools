@@ -11,10 +11,10 @@ import (
 
 	"github.com/iancoleman/strcase"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/node"
 	"github.com/bryanl/woowoo/params"
 	"github.com/google/go-jsonnet/ast"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/pkg/errors"
 )
 

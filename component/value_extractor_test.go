@@ -3,7 +3,7 @@ package component
 import (
 	"testing"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/stretchr/testify/require"
 )
 

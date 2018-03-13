@@ -4,10 +4,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/bryanl/woowoo/yaml2jsonnet"
 	"github.com/davecgh/go-spew/spew"
-
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/printer"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,7 +15,7 @@ func main() {
 	flag.StringVar(&source, "source", "", "jsonnet source")
 	flag.Parse()
 
-	node, err := yaml2jsonnet.ImportJsonnet(source)
+	node, err := jsonnetutil.Import(source)
 	if err != nil {
 		logrus.WithError(err).Fatal("import jsonnet")
 	}

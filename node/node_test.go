@@ -3,7 +3,7 @@ package node
 import (
 	"testing"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -13,11 +13,11 @@ import (
 
 	"github.com/bryanl/woowoo/ksutil"
 
-	"github.com/bryanl/woowoo/jsonnetutil"
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
 	utilyaml "github.com/bryanl/woowoo/pkg/util/yaml"
 	"github.com/go-yaml/yaml"
+	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
