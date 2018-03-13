@@ -232,7 +232,7 @@ func (y *YAML) paramValues(componentName, index string, valueMap map[string]Valu
 	return params, nil
 }
 
-// Objects converts YAML to a slice apimachinery Unstructured objects. Params for a YAML
+// Objects converts YAML to a slice of apimachinery Unstructured objects. Params for a YAML
 // based component are keyed like, `name-id`, where `name` is the file name sans the extension,
 // and the id is the position within the file (starting at 0). Params are named this way
 // because a YAML file can contain more than one object.
