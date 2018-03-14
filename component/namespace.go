@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/bryanl/woowoo/ksutil"
 	"github.com/bryanl/woowoo/params"
+	"github.com/ksonnet/ksonnet/metadata/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
@@ -26,13 +26,13 @@ func nsErrorMsg(format, nsName string) string {
 type Namespace struct {
 	path string
 
-	app ksutil.SuperApp
+	app app.App
 }
 
 // ExtractNamespacedComponent extracts a namespace and a component from a path.
-func ExtractNamespacedComponent(app ksutil.SuperApp, path string) (Namespace, string) {
+func ExtractNamespacedComponent(a app.App, path string) (Namespace, string) {
 	nsPath, component := filepath.Split(path)
-	ns := Namespace{path: nsPath, app: app}
+	ns := Namespace{path: nsPath, app: a}
 	return ns, component
 }
 
@@ -45,11 +45,11 @@ func (n *Namespace) Name() string {
 }
 
 // GetNamespace gets a namespace by path.
-func GetNamespace(app ksutil.SuperApp, nsName string) (Namespace, error) {
+func GetNamespace(a app.App, nsName string) (Namespace, error) {
 	parts := strings.Split(nsName, "/")
-	nsDir := filepath.Join(append([]string{app.Root(), componentsRoot}, parts...)...)
+	nsDir := filepath.Join(append([]string{a.Root(), componentsRoot}, parts...)...)
 
-	exists, err := afero.Exists(app.Fs(), nsDir)
+	exists, err := afero.Exists(a.Fs(), nsDir)
 	if err != nil {
 		return Namespace{}, err
 	}
@@ -58,7 +58,7 @@ func GetNamespace(app ksutil.SuperApp, nsName string) (Namespace, error) {
 		return Namespace{}, errors.New(nsErrorMsg("unable to find %s", nsName))
 	}
 
-	return Namespace{path: nsName, app: app}, nil
+	return Namespace{path: nsName, app: a}, nil
 }
 
 // ParamsPath generates the path to params.libsonnet for a namespace.
@@ -151,13 +151,13 @@ func (n *Namespace) readParams() (string, error) {
 }
 
 // NamespacesFromEnv returns all namespaces given an environment.
-func NamespacesFromEnv(app ksutil.SuperApp, env string) ([]Namespace, error) {
-	paths, err := MakePaths(app, env)
+func NamespacesFromEnv(a app.App, env string) ([]Namespace, error) {
+	paths, err := MakePaths(a, env)
 	if err != nil {
 		return nil, err
 	}
 
-	prefix := app.Root() + "/components"
+	prefix := a.Root() + "/components"
 
 	seen := make(map[string]bool)
 	var namespaces []Namespace
@@ -165,7 +165,7 @@ func NamespacesFromEnv(app ksutil.SuperApp, env string) ([]Namespace, error) {
 		nsName := strings.TrimPrefix(path, prefix)
 		if _, ok := seen[nsName]; !ok {
 			seen[nsName] = true
-			ns, err := GetNamespace(app, nsName)
+			ns, err := GetNamespace(a, nsName)
 			if err != nil {
 				return nil, err
 			}
@@ -178,18 +178,18 @@ func NamespacesFromEnv(app ksutil.SuperApp, env string) ([]Namespace, error) {
 }
 
 // Namespaces returns all component namespaces
-func Namespaces(app ksutil.SuperApp) ([]Namespace, error) {
-	componentRoot := filepath.Join(app.Root(), componentsRoot)
+func Namespaces(a app.App) ([]Namespace, error) {
+	componentRoot := filepath.Join(a.Root(), componentsRoot)
 
 	var namespaces []Namespace
 
-	err := afero.Walk(app.Fs(), componentRoot, func(path string, fi os.FileInfo, err error) error {
+	err := afero.Walk(a.Fs(), componentRoot, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if fi.IsDir() {
-			ok, err := isComponentDir(app.Fs(), path)
+			ok, err := isComponentDir(a.Fs(), path)
 			if err != nil {
 				return err
 			}
@@ -197,7 +197,7 @@ func Namespaces(app ksutil.SuperApp) ([]Namespace, error) {
 			if ok {
 				nsPath := strings.TrimPrefix(path, componentRoot)
 				nsPath = strings.TrimPrefix(nsPath, string(filepath.Separator))
-				ns := Namespace{path: nsPath, app: app}
+				ns := Namespace{path: nsPath, app: a}
 				namespaces = append(namespaces, ns)
 			}
 		}

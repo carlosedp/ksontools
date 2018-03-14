@@ -17,7 +17,7 @@ import (
 )
 
 // Apply applies components to a cluster.
-func Apply(ksApp ksutil.SuperApp, envName string, components []string, options client.ApplyOptions) error {
+func Apply(ksApp app.App, envName string, components []string, options client.ApplyOptions) error {
 	objects, err := buildObjects(ksApp, envName, components)
 	if err != nil {
 		return err
@@ -37,7 +37,7 @@ func Apply(ksApp ksutil.SuperApp, envName string, components []string, options c
 }
 
 // Delete deletes components from a cluster.
-func Delete(ksApp ksutil.SuperApp, envName string, components []string, options client.DeleteOptions) error {
+func Delete(ksApp app.App, envName string, components []string, options client.DeleteOptions) error {
 	objects, err := buildObjects(ksApp, envName, components)
 	if err != nil {
 		return err
@@ -54,7 +54,7 @@ func Delete(ksApp ksutil.SuperApp, envName string, components []string, options 
 }
 
 // Show shows YAML rendered for an environment.
-func Show(ksApp ksutil.SuperApp, envName string, components []string) error {
+func Show(ksApp app.App, envName string, components []string) error {
 	objects, err := buildObjects(ksApp, envName, components)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func Show(ksApp ksutil.SuperApp, envName string, components []string) error {
 	return nil
 }
 
-func buildObjects(ksApp ksutil.SuperApp, envName string, components []string) ([]*unstructured.Unstructured, error) {
+func buildObjects(ksApp app.App, envName string, components []string) ([]*unstructured.Unstructured, error) {
 	namespaces, err := component.NamespacesFromEnv(ksApp, envName)
 	if err != nil {
 		return nil, errors.Wrap(err, "find namespaces")
@@ -119,11 +119,12 @@ func stringInSlice(s string, sl []string) bool {
 	return false
 }
 
-func buildEnvParam(ksApp ksutil.SuperApp, envName string, ns component.Namespace) (string, error) {
+func buildEnvParam(ksApp app.App, envName string, ns component.Namespace) (string, error) {
 	paramsStr, err := ns.ResolvedParams()
 	if err != nil {
 		return "", err
 	}
+
 
 	envParamsPath := filepath.Join(ksApp.Root(), "environments", envName, "params.libsonnet")
 	b, err := afero.ReadFile(ksApp.Fs(), envParamsPath)

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/bryanl/woowoo/k8sutil"
+	"github.com/ksonnet/ksonnet/metadata/app"
 
-	"github.com/bryanl/woowoo/ksutil"
 	"github.com/bryanl/woowoo/params"
 	jsonnet "github.com/google/go-jsonnet"
 	"github.com/pkg/errors"
@@ -21,7 +21,7 @@ import (
 
 // Jsonnet is a component base on jsonnet.
 type Jsonnet struct {
-	app        ksutil.SuperApp
+	app        app.App
 	source     string
 	paramsPath string
 }
@@ -29,9 +29,9 @@ type Jsonnet struct {
 var _ Component = (*Jsonnet)(nil)
 
 // NewJsonnet creates an instance of Jsonnet.
-func NewJsonnet(app ksutil.SuperApp, source, paramsPath string) *Jsonnet {
+func NewJsonnet(a app.App, source, paramsPath string) *Jsonnet {
 	return &Jsonnet{
-		app:        app,
+		app:        a,
 		source:     source,
 		paramsPath: paramsPath,
 	}

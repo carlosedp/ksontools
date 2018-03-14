@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bryanl/woowoo/ksutil"
+	"github.com/ksonnet/ksonnet/metadata/app"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -54,10 +54,10 @@ const (
 )
 
 // Path returns returns the file system path for a component.
-func Path(app ksutil.SuperApp, name string) (string, error) {
-	ns, localName := ExtractNamespacedComponent(app, name)
+func Path(a app.App, name string) (string, error) {
+	ns, localName := ExtractNamespacedComponent(a, name)
 
-	fis, err := afero.ReadDir(app.Fs(), ns.Dir())
+	fis, err := afero.ReadDir(a.Fs(), ns.Dir())
 	if err != nil {
 		return "", err
 	}
@@ -89,8 +89,8 @@ func Path(app ksutil.SuperApp, name string) (string, error) {
 }
 
 // ExtractComponent extracts a component from a path.
-func ExtractComponent(app ksutil.SuperApp, path string) (Component, error) {
-	ns, componentName := ExtractNamespacedComponent(app, path)
+func ExtractComponent(a app.App, path string) (Component, error) {
+	ns, componentName := ExtractNamespacedComponent(a, path)
 	members, err := ns.Components()
 	if err != nil {
 		return nil, err
@@ -121,8 +121,8 @@ func isComponentDir(fs afero.Fs, path string) (bool, error) {
 }
 
 // MakePathsByNamespace creates a map of component paths categorized by namespace.
-func MakePathsByNamespace(app ksutil.SuperApp, env string) (map[Namespace][]string, error) {
-	paths, err := MakePaths(app, env)
+func MakePathsByNamespace(a app.App, env string) (map[Namespace][]string, error) {
+	paths, err := MakePaths(a, env)
 	if err != nil {
 		return nil, err
 	}
@@ -130,12 +130,12 @@ func MakePathsByNamespace(app ksutil.SuperApp, env string) (map[Namespace][]stri
 	m := make(map[Namespace][]string)
 
 	for i := range paths {
-		prefix := app.Root() + "/components/"
-		if strings.HasSuffix(app.Root(), "/") {
-			prefix = app.Root() + "components/"
+		prefix := a.Root() + "/components/"
+		if strings.HasSuffix(a.Root(), "/") {
+			prefix = a.Root() + "components/"
 		}
 		path := strings.TrimPrefix(paths[i], prefix)
-		ns, _ := ExtractNamespacedComponent(app, path)
+		ns, _ := ExtractNamespacedComponent(a, path)
 		if _, ok := m[ns]; !ok {
 			m[ns] = make([]string, 0)
 		}
@@ -147,8 +147,8 @@ func MakePathsByNamespace(app ksutil.SuperApp, env string) (map[Namespace][]stri
 }
 
 // MakePaths creates a slice of component paths
-func MakePaths(app ksutil.SuperApp, env string) ([]string, error) {
-	cpl, err := newComponentPathLocator(app, env)
+func MakePaths(a app.App, env string) ([]string, error) {
+	cpl, err := newComponentPathLocator(a, env)
 	if err != nil {
 		return nil, errors.Wrap(err, "create component path locator")
 	}

@@ -2,12 +2,12 @@ package action
 
 import (
 	"github.com/bryanl/woowoo/ksplugin"
-	"github.com/bryanl/woowoo/ksutil"
+	"github.com/ksonnet/ksonnet/metadata/app"
 	"github.com/spf13/afero"
 )
 
 type base struct {
-	app ksutil.SuperApp
+	app app.App
 }
 
 func new(fs afero.Fs) (*base, error) {
@@ -16,12 +16,12 @@ func new(fs afero.Fs) (*base, error) {
 		return nil, err
 	}
 
-	app, err := ksutil.LoadApp(fs, pluginEnv.AppDir)
+	a, err := app.Load(fs, pluginEnv.AppDir)
 	if err != nil {
 		return nil, err
 	}
 
 	return &base{
-		app: app,
+		app: a,
 	}, nil
 }

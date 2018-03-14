@@ -4,30 +4,28 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/bryanl/woowoo/ksutil"
-
 	"github.com/ksonnet/ksonnet/metadata/app"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )
 
 type componentPathLocator struct {
-	app     ksutil.SuperApp
+	app     app.App
 	envSpec *app.EnvironmentSpec
 }
 
-func newComponentPathLocator(app ksutil.SuperApp, envName string) (*componentPathLocator, error) {
-	if app == nil {
+func newComponentPathLocator(a app.App, envName string) (*componentPathLocator, error) {
+	if a == nil {
 		return nil, errors.New("app is nil")
 	}
 
-	env, err := app.Environment(envName)
+	env, err := a.Environment(envName)
 	if err != nil {
 		return nil, err
 	}
 
 	return &componentPathLocator{
-		app:     app,
+		app:     a,
 		envSpec: env,
 	}, nil
 }

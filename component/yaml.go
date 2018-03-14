@@ -11,12 +11,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bryanl/woowoo/ksutil"
-
 	"github.com/bryanl/woowoo/k8sutil"
 	"github.com/bryanl/woowoo/params"
 	utilyaml "github.com/bryanl/woowoo/pkg/util/yaml"
 	"github.com/go-yaml/yaml"
+	"github.com/ksonnet/ksonnet/metadata/app"
 	jsonnetutil "github.com/ksonnet/ksonnet/pkg/util/jsonnet"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -63,7 +62,7 @@ func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 
 // YAML represents a YAML component. Since JSON is a subset of YAML, it can handle JSON as well.
 type YAML struct {
-	app        ksutil.SuperApp
+	app        app.App
 	source     string
 	paramsPath string
 }
@@ -71,9 +70,9 @@ type YAML struct {
 var _ Component = (*YAML)(nil)
 
 // NewYAML creates an instance of YAML.
-func NewYAML(app ksutil.SuperApp, source, paramsPath string) *YAML {
+func NewYAML(a app.App, source, paramsPath string) *YAML {
 	return &YAML{
-		app:        app,
+		app:        a,
 		source:     source,
 		paramsPath: paramsPath,
 	}
