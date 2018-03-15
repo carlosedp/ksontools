@@ -38,11 +38,17 @@ func (s *Summary) typeSpec() (*TypeSpec, error) {
 
 // Component is a ksonnet Component interface.
 type Component interface {
-	Name() string
+	// Name is the component name.
+	Name(wantsNamedSpaced bool) string
+	// Objects converts the component to a set of objects.
 	Objects(paramsStr, envName string) ([]*unstructured.Unstructured, error)
+	// SetParams sets a component paramaters.
 	SetParam(path []string, value interface{}, options ParamOptions) error
+	// DeleteParam deletes a component parameter.
 	DeleteParam(path []string, options ParamOptions) error
+	// Params returns a list of all parameters for a component.
 	Params() ([]NamespaceParameter, error)
+	// Summarize returns a summary of the component.
 	Summarize() ([]Summary, error)
 }
 
@@ -97,7 +103,7 @@ func ExtractComponent(a app.App, path string) (Component, error) {
 	}
 
 	for _, member := range members {
-		if componentName == member.Name() {
+		if componentName == member.Name(false) {
 			return member, nil
 		}
 	}

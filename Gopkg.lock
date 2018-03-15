@@ -332,6 +332,7 @@
     "generator",
     "metadata",
     "metadata/app",
+    "metadata/app/mocks",
     "metadata/lib",
     "metadata/params",
     "metadata/parts",
@@ -645,8 +646,7 @@
     "mock",
     "require"
   ]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f6abca593680b2315d2075e0f5e2a9751e3f431a"
 
 [[projects]]
   name = "github.com/v2pro/plz"
@@ -876,6 +876,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "84eec10c7f6177766ec5356daf417c89fe1eb79a6b880bd470c5883912d2bd9c"
+  inputs-digest = "e856e109e4d060f1d2057e0e7a6c2be62cd32beb373a73f27fb69bdab39b15ef"
   solver-name = "gps-cdcl"
   solver-version = 1

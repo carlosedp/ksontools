@@ -10,6 +10,40 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+func TestYAML_Name(t *testing.T) {
+	app, fs := appMock("/")
+
+	stageFile(t, fs, "params-mixed.libsonnet", "/components/params.libsonnet")
+	stageFile(t, fs, "deployment.yaml", "/components/deployment.yaml")
+	stageFile(t, fs, "k8s.libsonnet", "/lib/v1.8.7/k8s.libsonnet")
+
+	y := NewYAML(app, "", "/components/deployment.yaml", "/components/params.libsonnet")
+
+	cases := []struct {
+		name         string
+		isNameSpaced bool
+		expected     string
+	}{
+		{
+			name:         "wants namespaced",
+			isNameSpaced: true,
+			expected:     "deployment",
+		},
+		{
+			name:         "no namespace",
+			isNameSpaced: false,
+			expected:     "deployment",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, y.Name(tc.isNameSpaced))
+		})
+	}
+
+}
+
 func TestYAML_Params(t *testing.T) {
 	app, fs := appMock("/")
 
@@ -17,7 +51,7 @@ func TestYAML_Params(t *testing.T) {
 	stageFile(t, fs, "deployment.yaml", "/components/deployment.yaml")
 	stageFile(t, fs, "k8s.libsonnet", "/lib/v1.8.7/k8s.libsonnet")
 
-	y := NewYAML(app, "/components/deployment.yaml", "/components/params.libsonnet")
+	y := NewYAML(app, "", "/components/deployment.yaml", "/components/params.libsonnet")
 	params, err := y.Params()
 	require.NoError(t, err)
 
@@ -40,7 +74,7 @@ func TestYAML_Params_literal(t *testing.T) {
 	stageFile(t, fs, "rbac.yaml", "/rbac.yaml")
 	stageFile(t, fs, "k8s.libsonnet", "/lib/v1.8.7/k8s.libsonnet")
 
-	y := NewYAML(app, "/rbac.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/rbac.yaml", "/params.libsonnet")
 	params, err := y.Params()
 	require.NoError(t, err)
 
@@ -62,7 +96,7 @@ func TestYAML_Objects_no_params(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects("", "")
 	require.NoError(t, err)
@@ -102,7 +136,7 @@ func TestYAML_Objects_no_params_with_json(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.json", "/certificate-crd.json")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.json", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.json", "/params.libsonnet")
 
 	list, err := y.Objects("", "")
 	require.NoError(t, err)
@@ -143,7 +177,7 @@ func TestYAML_Objects_params_exist_with_no_entry(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects("", "")
 	require.NoError(t, err)
@@ -184,7 +218,7 @@ func TestYAML_Objects_params_exist_with_entry(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.yaml", "/params.libsonnet")
 
 	list, err := y.Objects("", "")
 	require.NoError(t, err)
@@ -225,7 +259,7 @@ func TestYAML_SetParam(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.yaml", "/params.libsonnet")
 
 	err := y.SetParam([]string{"spec", "version"}, "v2", ParamOptions{})
 	require.NoError(t, err)
@@ -244,7 +278,7 @@ func TestYAML_DeleteParam(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.yaml", "/certificate-crd.yaml")
 	stageFile(t, fs, "params-with-entry.libsonnet", "/params.libsonnet")
 
-	y := NewYAML(app, "/certificate-crd.yaml", "/params.libsonnet")
+	y := NewYAML(app, "", "/certificate-crd.yaml", "/params.libsonnet")
 
 	err := y.DeleteParam([]string{"spec", "version"}, ParamOptions{})
 	require.NoError(t, err)
@@ -263,7 +297,7 @@ func TestYAML_Summarize(t *testing.T) {
 	stageFile(t, fs, "rbac.yaml", "/components/rbac.yaml")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/components/params.libsonnet")
 
-	y := NewYAML(app, "/components/rbac.yaml", "/components/params.libsonnet")
+	y := NewYAML(app, "", "/components/rbac.yaml", "/components/params.libsonnet")
 
 	list, err := y.Summarize()
 	require.NoError(t, err)
@@ -296,7 +330,7 @@ func TestYAML_Summarize_json(t *testing.T) {
 	stageFile(t, fs, "certificate-crd.json", "/components/certificate-crd.json")
 	stageFile(t, fs, "params-no-entry.libsonnet", "/components/params.libsonnet")
 
-	y := NewYAML(app, "/components/certificate-crd.json", "/components/params.libsonnet")
+	y := NewYAML(app, "", "/components/certificate-crd.json", "/components/params.libsonnet")
 
 	list, err := y.Summarize()
 	require.NoError(t, err)

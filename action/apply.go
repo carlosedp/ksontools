@@ -1,7 +1,8 @@
 package action
 
 import (
-	"github.com/bryanl/woowoo/env"
+	"github.com/bryanl/woowoo/k8sutil"
+	"github.com/bryanl/woowoo/pipeline"
 	"github.com/bryanl/woowoo/pkg/client"
 	"github.com/spf13/afero"
 )
@@ -43,5 +44,22 @@ func newApply(fs afero.Fs, env string, options client.ApplyOptions) (*apply, err
 
 // Run runs the action.
 func (s *apply) Run() error {
-	return env.Apply(s.app, s.env, s.components, s.options)
+	p := pipeline.New(s.app, s.env)
+
+	objects, err := p.Objects(s.components)
+	if err != nil {
+		return err
+	}
+
+	// TODO: create better semantics around apply
+	c := k8sutil.ApplyCmd{
+		Env:          s.env,
+		Create:       s.options.Create,
+		GcTag:        s.options.GcTag,
+		SkipGc:       s.options.SkipGc,
+		DryRun:       s.options.DryRun,
+		ClientConfig: s.options.Client,
+	}
+
+	return c.Run(objects, "")
 }

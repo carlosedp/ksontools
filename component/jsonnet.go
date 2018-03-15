@@ -3,6 +3,7 @@ package component
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -22,6 +23,7 @@ import (
 // Jsonnet is a component base on jsonnet.
 type Jsonnet struct {
 	app        app.App
+	nsName     string
 	source     string
 	paramsPath string
 }
@@ -29,7 +31,7 @@ type Jsonnet struct {
 var _ Component = (*Jsonnet)(nil)
 
 // NewJsonnet creates an instance of Jsonnet.
-func NewJsonnet(a app.App, source, paramsPath string) *Jsonnet {
+func NewJsonnet(a app.App, nsName, source, paramsPath string) *Jsonnet {
 	return &Jsonnet{
 		app:        a,
 		source:     source,
@@ -38,9 +40,14 @@ func NewJsonnet(a app.App, source, paramsPath string) *Jsonnet {
 }
 
 // Name is the name of this component.
-func (j *Jsonnet) Name() string {
+func (j *Jsonnet) Name(wantsNameSpaced bool) string {
 	base := filepath.Base(j.source)
-	return strings.TrimSuffix(base, filepath.Ext(base))
+	name := strings.TrimSuffix(base, filepath.Ext(base))
+	if !wantsNameSpaced {
+		return name
+	}
+
+	return strings.TrimPrefix(path.Join(j.nsName, name), "/")
 }
 
 func (j *Jsonnet) vmImporter(envName string) (*jsonnet.MemoryImporter, error) {
@@ -164,7 +171,7 @@ func (j *Jsonnet) SetParam(path []string, value interface{}, options ParamOption
 		return err
 	}
 
-	updatedParams, err := params.Set(path, paramsData, j.Name(), value, paramsComponentRoot)
+	updatedParams, err := params.Set(path, paramsData, j.Name(false), value, paramsComponentRoot)
 	if err != nil {
 		return err
 	}
@@ -183,7 +190,7 @@ func (j *Jsonnet) DeleteParam(path []string, options ParamOptions) error {
 		return err
 	}
 
-	updatedParams, err := params.Delete(path, paramsData, j.Name(), paramsComponentRoot)
+	updatedParams, err := params.Delete(path, paramsData, j.Name(false), paramsComponentRoot)
 	if err != nil {
 		return err
 	}
@@ -202,7 +209,7 @@ func (j *Jsonnet) Params() ([]NamespaceParameter, error) {
 		return nil, err
 	}
 
-	props, err := params.ToMap(j.Name(), paramsData, paramsComponentRoot)
+	props, err := params.ToMap(j.Name(false), paramsData, paramsComponentRoot)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not find components")
 	}
@@ -214,7 +221,7 @@ func (j *Jsonnet) Params() ([]NamespaceParameter, error) {
 			return nil, err
 		}
 		np := NamespaceParameter{
-			Component: j.Name(),
+			Component: j.Name(false),
 			Key:       k,
 			Index:     "0",
 			Value:     vStr,
@@ -252,7 +259,7 @@ func (j *Jsonnet) paramValue(v interface{}) (string, error) {
 func (j *Jsonnet) Summarize() ([]Summary, error) {
 	return []Summary{
 		{
-			ComponentName: j.Name(),
+			ComponentName: j.Name(false),
 			IndexStr:      "0",
 			Type:          "jsonnet",
 		},

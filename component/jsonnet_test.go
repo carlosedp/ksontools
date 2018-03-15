@@ -16,9 +16,31 @@ func TestJsonnet_Name(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/components/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
-	require.Equal(t, "guestbook-ui", c.Name())
+	cases := []struct {
+		name         string
+		isNameSpaced bool
+		expected     string
+	}{
+		{
+			name:         "wants namespaced",
+			isNameSpaced: true,
+			expected:     "guestbook-ui",
+		},
+		{
+			name:         "no namespace",
+			isNameSpaced: false,
+			expected:     "guestbook-ui",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.expected, c.Name(tc.isNameSpaced))
+		})
+	}
+
 }
 
 func TestJsonnet_Objects(t *testing.T) {
@@ -34,7 +56,7 @@ func TestJsonnet_Objects(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/lib/v1.8.7/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
 	paramsStr := testdata(t, "guestbook/params.libsonnet")
 
@@ -108,7 +130,7 @@ func TestJsonnet_Params(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/components/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
 	params, err := c.Params()
 	require.NoError(t, err)
@@ -169,7 +191,7 @@ func TestJsonnet_Summarize(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/components/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
 	got, err := c.Summarize()
 	require.NoError(t, err)
@@ -189,7 +211,7 @@ func TestJsonnet_SetParam(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/components/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
 	err := c.SetParam([]string{"replicas"}, 4, ParamOptions{})
 	require.NoError(t, err)
@@ -210,7 +232,7 @@ func TestJsonnet_DeleteParam(t *testing.T) {
 		stageFile(t, fs, "guestbook/"+file, "/components/"+file)
 	}
 
-	c := NewJsonnet(app, "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
+	c := NewJsonnet(app, "", "/components/guestbook-ui.jsonnet", "/components/params.libsonnet")
 
 	err := c.DeleteParam([]string{"replicas"}, ParamOptions{})
 	require.NoError(t, err)

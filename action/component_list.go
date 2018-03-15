@@ -70,7 +70,7 @@ func (cl *componentList) run() error {
 func (cl *componentList) listComponents(components []component.Component) {
 	var list []string
 	for _, c := range components {
-		list = append(list, c.Name())
+		list = append(list, c.Name(false))
 	}
 
 	sort.Strings(list)

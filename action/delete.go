@@ -1,7 +1,8 @@
 package action
 
 import (
-	"github.com/bryanl/woowoo/env"
+	"github.com/bryanl/woowoo/k8sutil"
+	"github.com/bryanl/woowoo/pipeline"
 	"github.com/bryanl/woowoo/pkg/client"
 	"github.com/spf13/afero"
 )
@@ -57,5 +58,19 @@ func newDelete(fs afero.Fs, env string, options client.DeleteOptions, opts ...De
 
 // Run runs the action.
 func (s *delete) Run() error {
-	return env.Delete(s.app, s.env, s.components, s.options)
+	p := pipeline.New(s.app, s.env)
+
+	objects, err := p.Objects(s.components)
+	if err != nil {
+		return err
+	}
+
+	// TODO: create better semantics around delete
+	c := k8sutil.DeleteCmd{
+		Env:          s.env,
+		GracePeriod:  s.options.GracePeriod,
+		ClientConfig: s.options.Client,
+	}
+
+	return c.Run(objects)
 }

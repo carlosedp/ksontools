@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -63,6 +64,7 @@ func ImportYaml(r io.Reader) (*TypeSpec, Properties, error) {
 // YAML represents a YAML component. Since JSON is a subset of YAML, it can handle JSON as well.
 type YAML struct {
 	app        app.App
+	nsName     string
 	source     string
 	paramsPath string
 }
@@ -70,18 +72,25 @@ type YAML struct {
 var _ Component = (*YAML)(nil)
 
 // NewYAML creates an instance of YAML.
-func NewYAML(a app.App, source, paramsPath string) *YAML {
+func NewYAML(a app.App, nsName, source, paramsPath string) *YAML {
 	return &YAML{
 		app:        a,
+		nsName:     nsName,
 		source:     source,
 		paramsPath: paramsPath,
 	}
 }
 
 // Name is the component name.
-func (y *YAML) Name() string {
+func (y *YAML) Name(wantsNameSpaced bool) string {
 	base := filepath.Base(y.source)
-	return strings.TrimSuffix(base, filepath.Ext(base))
+	name := strings.TrimSuffix(base, filepath.Ext(base))
+
+	if !wantsNameSpaced {
+		return name
+	}
+
+	return strings.TrimPrefix(path.Join(y.nsName, name), "/")
 }
 
 // Params returns params for a component.
@@ -111,7 +120,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 		return nil, errors.Wrap(err, "could not find components")
 	}
 
-	re, err := regexp.Compile(fmt.Sprintf(`^%s-(\d+)$`, y.Name()))
+	re, err := regexp.Compile(fmt.Sprintf(`^%s-(\d+)$`, y.Name(false)))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +155,7 @@ func (y *YAML) Params() ([]NamespaceParameter, error) {
 				return nil, errors.Errorf("component value for %q was not a map", componentName)
 			}
 
-			childParams, err := y.paramValues(y.Name(), index, valueMap, m, nil)
+			childParams, err := y.paramValues(y.Name(false), index, valueMap, m, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -253,7 +262,7 @@ func (y *YAML) Objects(paramsStr, envName string) ([]*unstructured.Unstructured,
 
 // SetParam set parameter for a component.
 func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) error {
-	entry := fmt.Sprintf("%s-%d", y.Name(), options.Index)
+	entry := fmt.Sprintf("%s-%d", y.Name(false), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {
 		return err
@@ -273,7 +282,7 @@ func (y *YAML) SetParam(path []string, value interface{}, options ParamOptions) 
 
 // DeleteParam deletes a param.
 func (y *YAML) DeleteParam(path []string, options ParamOptions) error {
-	entry := fmt.Sprintf("%s-%d", y.Name(), options.Index)
+	entry := fmt.Sprintf("%s-%d", y.Name(false), options.Index)
 	paramsData, err := y.readParams()
 	if err != nil {
 		return err
@@ -334,7 +343,7 @@ func (y *YAML) hasParams() (bool, error) {
 
 	componentPath := []string{
 		paramsComponentRoot,
-		fmt.Sprintf("%s-0", y.Name()),
+		fmt.Sprintf("%s-0", y.Name(false)),
 	}
 	_, err = jsonnetutil.FindObject(paramsObj, componentPath)
 	if err != nil {
@@ -410,7 +419,7 @@ func (y *YAML) Summarize() ([]Summary, error) {
 		}
 
 		summary := Summary{
-			ComponentName: y.Name(),
+			ComponentName: y.Name(false),
 			IndexStr:      strconv.Itoa(i),
 			Type:          y.ext(),
 			APIVersion:    ts.apiVersion,

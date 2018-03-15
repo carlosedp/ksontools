@@ -29,6 +29,11 @@ type Namespace struct {
 	app app.App
 }
 
+// NewNamespace creates an instance of Namespace.
+func NewNamespace(ksApp app.App, path string) Namespace {
+	return Namespace{app: ksApp, path: path}
+}
+
 // ExtractNamespacedComponent extracts a namespace and a component from a path.
 func ExtractNamespacedComponent(a app.App, path string) (Namespace, string) {
 	nsPath, component := filepath.Split(path)
@@ -235,10 +240,10 @@ func (n *Namespace) Components() ([]Component, error) {
 		switch ext {
 		// TODO: these should be constants
 		case ".yaml", ".json":
-			component := NewYAML(n.app, path, n.ParamsPath())
+			component := NewYAML(n.app, n.Name(), path, n.ParamsPath())
 			components = append(components, component)
 		case ".jsonnet":
-			component := NewJsonnet(n.app, path, n.ParamsPath())
+			component := NewJsonnet(n.app, n.Name(), path, n.ParamsPath())
 			components = append(components, component)
 		}
 	}

@@ -1,7 +1,10 @@
 package action
 
 import (
-	"github.com/bryanl/woowoo/env"
+	"io"
+	"os"
+
+	"github.com/bryanl/woowoo/pipeline"
 	"github.com/spf13/afero"
 )
 
@@ -54,5 +57,13 @@ func newShow(fs afero.Fs, env string, opts ...ShowOpt) (*show, error) {
 
 // Run runs the action.
 func (s *show) Run() error {
-	return env.Show(s.app, s.env, s.components)
+	p := pipeline.New(s.app, s.env)
+
+	data, err := p.YAML(s.components)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(os.Stdout, data)
+	return err
 }
