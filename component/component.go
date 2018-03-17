@@ -11,10 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-type libPather interface {
-	LibPath(envName string) (string, error)
-}
-
 // ParamOptions is options for parameters.
 type ParamOptions struct {
 	Index int

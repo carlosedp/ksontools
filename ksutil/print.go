@@ -9,6 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// TODO: in ksonnet... so deprecate this
+
 // Fprint prints objects to a writer in a format (yaml or json).
 func Fprint(out io.Writer, objects []*unstructured.Unstructured, format string) error {
 	switch format {
