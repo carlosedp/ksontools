@@ -9,7 +9,6 @@ import (
 	"unicode"
 
 	"github.com/bryanl/woowoo/component"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iancoleman/strcase"
 	"github.com/ksonnet/ksonnet-lib/ksonnet-gen/astext"
 	nm "github.com/ksonnet/ksonnet-lib/ksonnet-gen/nodemaker"
@@ -58,8 +57,6 @@ func NewDocument(componentName string, r io.Reader, root ast.Node) (*Document, e
 	if err != nil {
 		return nil, errors.Wrap(err, "resolve document paths")
 	}
-
-	spew.Dump(resolvedPaths)
 
 	doc.resolvedPaths = resolvedPaths
 
