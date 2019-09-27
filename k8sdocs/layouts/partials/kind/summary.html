@@ -11,7 +11,7 @@
             {{ end }}
             {{ $id := (printf "kind-version-%s-%s" $parent.Params.parent_group $parent.Params.kind_name) }}
             <div>
-                <a id="{{ $id }}" href="{{ printf "%s" $path | relURL}}" data-version="{{$e}}" class="kind-version badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
+                <a id="{{ $id }}" href="{{ printf "%s" $path | relURL}}/" data-version="{{$e}}" class="kind-version badge {{ $.Scratch.Get "badgeType" }}">{{ . }}</a>
             </div>
         {{ end }}
     </td>
