@@ -1,7 +1,9 @@
 # Build API and docs
+ARG K8S_VERSION=1.14.7
 FROM golang:1.13 AS builder
 
-ENV SWAGGER_VERSION 1.14.7
+ARG K8S_VERSION
+ENV SWAGGER_VERSION=$K8S_VERSION
 
 RUN mkdir -p /go/src/github.com/bryanl/woowoo
 
@@ -17,6 +19,8 @@ RUN ksgen -tag $SWAGGER_VERSION -output /tmp && \
 # Build site
 FROM node:8.16.1 as site
 
+ARG K8S_VERSION
+ENV SWAGGER_VERSION=$K8S_VERSION
 ENV HUGO_VERSION 0.49.2
 ENV HUGO_BINARY hugo_${HUGO_VERSION}_Linux-64bit.deb
 ADD https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${HUGO_BINARY} /tmp/hugo.deb
@@ -36,6 +40,8 @@ RUN npm install gulp-cli -g && \
 RUN gulp scss && \
     gulp images && \
     gulp js
+
+RUN sed -i "s/SWAGGER_VERSION/$SWAGGER_VERSION/g" layouts/_default/baseof.html
 
 # RUN hugo
 RUN hugo
