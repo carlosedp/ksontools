@@ -5,16 +5,16 @@ FROM golang:1.13 AS builder
 ARG K8S_VERSION
 ENV SWAGGER_VERSION=$K8S_VERSION
 
-RUN mkdir -p /go/src/github.com/bryanl/woowoo
+RUN mkdir -p /build
+WORKDIR /build
 
-WORKDIR /go/src/github.com/bryanl/woowoo
 COPY . .
 
 RUN go get github.com/bryanl/ksgen && \
-    go install github.com/bryanl/woowoo/cmd/kslibdocgen
+    go build ./cmd/kslibdocgen
 
 RUN ksgen -tag $SWAGGER_VERSION -output /tmp && \
-    kslibdocgen -path /tmp/k8s.libsonnet -outPath /go/src/github.com/bryanl/woowoo/k8sdocs
+    ./kslibdocgen -path /tmp/k8s.libsonnet -outPath /build/k8sdocs
 
 # Build site
 FROM node:8.16.1 as site
@@ -27,14 +27,13 @@ ADD https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/${HUGO_B
 
 RUN dpkg -i /tmp/hugo.deb && \
     rm /tmp/hugo.deb && \
-    mkdir -p /go/src/github.com/bryanl/woowoo
+    mkdir -p /build
 
-WORKDIR /go/src/github.com/bryanl/woowoo/k8sdocs/
-COPY --from=builder /go/src/github.com/bryanl/woowoo/k8sdocs/ .
+WORKDIR /build/k8sdocs/
+COPY --from=builder /build/k8sdocs/ .
 
 RUN npm install gulp-cli -g && \
     npm install gulp -D && \
-    npm install @primer/octicons && \
     npm install
 
 RUN gulp scss && \
@@ -42,6 +41,8 @@ RUN gulp scss && \
     gulp js
 
 RUN sed -i "s/SWAGGER_VERSION/$SWAGGER_VERSION/g" layouts/_default/baseof.html
+
+RUN cat content/apps/v1/deployment/new.md
 
 # RUN hugo
 RUN hugo
@@ -53,5 +54,5 @@ RUN mkdir -p public/octicons && \
 FROM nginx:1.17
 LABEL MAINTAINER="carlosedp@gmail.com"
 
-COPY --from=site /go/src/github.com/bryanl/woowoo/k8sdocs/public /usr/share/nginx/html
+COPY --from=site /build/k8sdocs/public /usr/share/nginx/html
 WORKDIR /usr/share/nginx/html

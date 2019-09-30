@@ -205,6 +205,11 @@ func (dg *Docgen) iterateProperties(prepend string, node ast.Node, group, versio
 func (dg *Docgen) handleField(prepend string, index int, fields []astext.ObjectField, group, version, kind string, root []string) error {
 	of := fields[index]
 
+	// Until it's able to parse quoted properties
+	if of.Id == nil {
+		return nil
+	}
+
 	id := string(*of.Id)
 
 	if of.Kind == ast.ObjectLocal {

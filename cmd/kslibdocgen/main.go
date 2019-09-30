@@ -4,7 +4,7 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/bryanl/woowoo/docgen"
+	"github.com/carlosedp/ksontools/docgen"
 	"github.com/sirupsen/logrus"
 )
 
