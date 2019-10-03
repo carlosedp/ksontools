@@ -1,5 +1,5 @@
 # Build API and docs
-ARG K8S_VERSION=1.14.7
+ARG K8S_VERSION=1.15.4
 FROM golang:1.13 AS builder
 
 ARG K8S_VERSION
@@ -11,7 +11,10 @@ WORKDIR /build
 COPY . .
 
 RUN go get github.com/bryanl/ksgen && \
-    go build ./cmd/kslibdocgen
+    git clone https://github.com/carlosedp/ksontools --depth=1 && \
+    cd ksontools && \
+    go build -o /build/kslibdocgen ./cmd/kslibdocgen && \
+    cd -
 
 RUN ksgen -tag $SWAGGER_VERSION -output /tmp && \
     ./kslibdocgen -path /tmp/k8s.libsonnet -outPath /build/k8sdocs
@@ -42,9 +45,6 @@ RUN gulp scss && \
 
 RUN sed -i "s/SWAGGER_VERSION/$SWAGGER_VERSION/g" layouts/_default/baseof.html
 
-RUN cat content/apps/v1/deployment/new.md
-
-# RUN hugo
 RUN hugo
 
 RUN mkdir -p public/octicons && \
